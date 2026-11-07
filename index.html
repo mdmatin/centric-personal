@@ -2432,7 +2432,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-07m';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-07o';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -8014,15 +8014,20 @@ let xExpr = '', xDateV = '', xNoteV = '', xDescV = '', xSrcV = '', xTaxV = '', x
 
 /* calculator */
 const X_OPS = '+−×÷';
-const xHasOp = s => /[+−×÷]/.test(s);
+const xHasOp = s => /[+−×÷%]/.test(s);
 function xEval(s){
   const t = String(s||'').replace(/[+−×÷.]+$/,''); if (!t) return 0;
-  const toks = t.match(/\d*\.?\d+|[+−×÷]/g) || [];
-  let sum = 0, sign = 1, term = null, mul = null;
+  const toks = t.match(/\d*\.?\d+%?|[+−×÷]/g) || [];
+  let sum = 0, sign = 1, term = null, mul = null, first = true;
   toks.forEach(k=>{
-    if (k==='+' || k==='−'){ sum += sign*(term||0); sign = k==='−' ? -1 : 1; term = null; mul = null; }
+    if (k==='+' || k==='−'){ sum += sign*(term||0); sign = k==='−' ? -1 : 1; term = null; mul = null; first = false; }
     else if (k==='×' || k==='÷') mul = k;
-    else { const v = parseFloat(k); term = term==null ? v : mul==='÷' ? (v ? term/v : term) : term*v; mul = null; }
+    else {
+      let v = parseFloat(k);
+      // %: after + or − it's a share of what came before (1200 − 15% = 1020, 850 + 10% = 935);
+      // after × or ÷, or on its own, it's just /100 (500 × 18% = 90)
+      if (k.endsWith('%')) v = (term==null && !first) ? sum*v/100 : v/100;
+      term = term==null ? v : mul==='÷' ? (v ? term/v : term) : term*v; mul = null; }
   });
   sum += sign*(term||0);
   return Math.round(sum*100)/100;
@@ -8030,8 +8035,9 @@ function xEval(s){
 function xKey(k){
   let s = xExpr;
   if (xAmtFresh){ xAmtFresh = false; if (/^\d+$/.test(k) || k==='.') s = ''; }
-  if (/^\d+$/.test(k)){ const cur = s.split(/[+−×÷]/).pop(); if (/\.\d\d$/.test(cur)) return; if (cur==='0' && k!=='.') s = s.slice(0,-1); s += k; }
-  else if (k==='.'){ const cur = s.split(/[+−×÷]/).pop(); if (!cur.includes('.')) s += cur==='' ? '0.' : '.'; }
+  if (/^\d+$/.test(k)){ const cur = s.split(/[+−×÷]/).pop(); if (/\.\d\d$/.test(cur) || cur.endsWith('%')) return; if (cur==='0' && k!=='.') s = s.slice(0,-1); s += k; }
+  else if (k==='.'){ const cur = s.split(/[+−×÷]/).pop(); if (!cur.includes('.') && !cur.endsWith('%')) s += cur==='' ? '0.' : '.'; }
+  else if (k==='%'){ const cur = s.split(/[+−×÷]/).pop(); if (/\d$/.test(cur)) s += '%'; }   // a percent closes the number it follows
   else if (X_OPS.includes(k)){ if (!s) return; s = X_OPS.includes(s.slice(-1)) ? s.slice(0,-1)+k : s+k; }
   else if (k==='='){ if (s) s = String(xEval(s)); }
   else if (k==='⌫') s = s.slice(0,-1);
@@ -8041,10 +8047,10 @@ function xKey(k){
 const xAmt = () => xEval(xExpr);
 const xExprHtml = () => xExpr ? esc(xExpr.replace(/\d+(\.\d*)?/g, m=>groupNum(m,'en-IN'))) : '';
 function xKeypad(okLabel){
-  // laid out like the iPhone Calculator: ⌫ C = ÷ on top, operators down the right, 00 0 . at the bottom and OK (Next / Save) in the corner
-  const keys = ['⌫','C','=','÷','7','8','9','×','4','5','6','−','1','2','3','+','00','0','.','OK'];
+  // C % ÷ × on top, operators down the right, = beside 3, . 0 ⌫ at the bottom and OK (Next / Save) in the corner
+  const keys = ['C','%','÷','×','7','8','9','−','4','5','6','+','1','2','3','=','.','0','⌫','OK'];   // % for discounts, tips and GST; = beside 3, ⌫ beside 0
   return `<div class="xkp">${keys.map(k=>k==='OK' ? `<button class="ok" data-k="OK">${esc(okLabel)}</button>`
-    : `<button class="${/^[+−×÷=]$/.test(k)?'op':k==='⌫'?'fn':k==='C'?'fn':''}" data-k="${k}">${k==='⌫' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1zM17 9l-5 6M12 9l5 6"/></svg>' : k}</button>`).join('')}</div>`;
+    : `<button class="${/^[+−×÷=%]$/.test(k)?'op':k==='⌫'?'fn':k==='C'?'fn':''}" data-k="${k}">${k==='⌫' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1zM17 9l-5 6M12 9l5 6"/></svg>' : k}</button>`).join('')}</div>`;
 }
 
 /* what can be picked */

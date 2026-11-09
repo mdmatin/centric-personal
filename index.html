@@ -344,10 +344,12 @@ main{padding:0}
 .chipb svg{width:13px;height:13px;color:var(--ink-3)}.chipb.on{background:color-mix(in srgb,var(--blue) 12%,transparent);color:var(--blue)}.chipb.on svg{color:var(--blue)}
 .chw .menu{left:0;right:auto;top:calc(100% + 6px);min-width:210px}.chw .menu button{justify-content:space-between;margin:0}.chw .menu button i{width:20px;height:20px;flex:none;color:var(--blue)}.chw .menu button i svg{width:20px;height:20px}
 .chw .menu .mgnote{padding:8px 12px 6px;font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--hairline)}
-.cuh{margin-top:16px}.cubig{font-size:30px;font-weight:700;letter-spacing:-.8px;line-height:1.15}.cucap{font-size:13.5px;color:var(--ink-3);margin-top:2px}
+.cuh{margin-top:0}.cubig{font-size:24px;font-weight:700;letter-spacing:-.6px;line-height:1.15}.cucap{font-size:13.5px;color:var(--ink-3);margin-top:2px}
 .culg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:13px;color:var(--ink-2)}
 .cusp{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;margin-top:14px}.cusp i{display:block}.cul2{justify-content:space-between;margin-top:6px}
-.cusel{display:flex;justify-content:space-between;margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--sunken);font-size:14.5px}.culg b{white-space:nowrap}
+.culk{display:flex;align-items:center;gap:5px}.culk i{display:inline-block;width:12px;border-top:2px solid var(--blue)}.culk i.dash{border-top:2px dashed var(--ink-3);margin-left:6px}
+#nwCum{margin-top:14px;touch-action:pan-y}#nwCum .tip{white-space:nowrap}#chRanges{margin-top:12px}
+.culg b{white-space:nowrap}
 .dax{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3)}
 .dl{padding:4px 16px}
 .dl .r{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--hairline)}
@@ -2451,7 +2453,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11b';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11c';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3669,7 +3671,7 @@ function renderBucketList(bk, sel){
 // Net worth page (opens from the chevron on Overview): what it is made of, what
 // moved it over a period, highs and lows, then the monthly market gains
 let nwMoveR = load('inv.nwMove') || '3M';
-let chB = load('inv.chB') || 'all', chMenu = false, chipOpen = null;   // Change › Investments: ticked buckets, or 'all' for the whole investments line
+let chB = load('inv.chB') || 'all', chMenu = false;   // Change › Investments: ticked buckets, or 'all' for the whole investments line
 // The per-bucket daily log comes on its own request (action=bucketDaily), only when Net worth
 // opens, so the main refresh doesn't wait for it. Kept on the phone; asked again after 10 minutes.
 let BD = load('inv.bd'), bdBusy = false;
@@ -3681,7 +3683,7 @@ async function loadBucketDaily(){
   catch(e){}
   finally{ bdBusy = false; }
 }
-let nwDaySel = null, nwDayAll = false, nwPer = load('inv.nwPer') || 'D', nwChgV = load('inv.nwChgV') || 'both';   // nwChgV: what the change shows — net worth, investments, or both side by side   // Day by day: the tapped bar, and whether the list shows every day
+let nwDaySel = null, nwDayAll = false, nwPer = 'D', nwChgV = 'inv', chR = load('inv.chR') || '1M';   // Change: investments only, one point a day, over 1W to All   // nwChgV: what the change shows — net worth, investments, or both side by side   // Day by day: the tapped bar, and whether the list shows every day
 const NW_MOVE = ['1M','3M','YTD','1Y','All'];
 function renderTrends(daily, monthly){
   const d = D && D.data, nw = d && d.netWorth, h = (nw && nw.head) || {}, cash = liveCash();
@@ -3762,18 +3764,6 @@ function renderTrends(daily, monthly){
       return { date:e.k, last:p.date, live:false, nw:p.value, chg:inv, pct:null, inv, invPct: q.value ? inv/q.value : null, cash:null, add, mkt: inv - add }; });
   }
   chPicker(daily, monthly, bkAll);
-  // Filters as three chips — what (Investments / Net worth / Combined), which buckets, and how often
-  const CK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-  const DN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
-  const VW = [['inv','Investments'],['nw','Net worth'],['both','Combined']], PS = [['D','Daily'],['W','Weekly'],['M','Monthly']];
-  const bTick = chB==='all' ? [] : chB.filter(b=>bkAll.includes(b));
-  const bLbl = !bTick.length ? 'Total' : bTick.length===bkAll.length ? 'All buckets' : bTick.length===1 ? bTick[0] : bTick.length + ' buckets';
-  const chip = (k, lbl, menu) => `<span class="chw"><button class="chipb${chipOpen===k?' on':''}" data-chip="${k}" aria-haspopup="menu" aria-expanded="${chipOpen===k}">${esc(lbl)}${DN}</button>${chipOpen===k ? `<div class="menu" role="menu">${menu}</div>` : ''}</span>`;
-  const radio = (list, cur, attr) => list.map(([k,l])=>`<button role="menuitemradio" aria-checked="${k===cur}" ${attr}="${k}">${l}<i>${k===cur?CK:''}</i></button>`).join('');
-  const chips = `<div class="chrow">` + chip('v', VW.find(v=>v[0]===nwChgV)[1], radio(VW, nwChgV, 'data-cv'))
-    + (nwChgV==='inv' && bkAll.length ? chip('b', bLbl, bkAll.map(b=>`<button role="menuitemcheckbox" aria-checked="${bTick.includes(b)}" data-cb="${esc(b)}">${esc(b)}<i>${bTick.includes(b)?CK:''}</i></button>`).join('')
-        + `<button role="menuitemcheckbox" aria-checked="${chB==='all'}" data-cb="__all">Total<i>${chB==='all'?CK:''}</i></button><div class="mgnote">Buckets start 22 Oct 2026. Total also has NPS.</div>`) : '')
-    + chip('p', PS.find(p=>p[0]===nwPer)[1], radio(PS, nwPer, 'data-cp')) + `</div>`;
   const dd = s => new Date(s+'T00:00:00');
   const dLab = x => { if (nwPer==='D') return dd(x.date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
     if (nwPer==='M') return dd(x.date+'-01').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
@@ -3791,7 +3781,8 @@ function renderTrends(daily, monthly){
     return `<div class="dbars${V==='both'?' two':''}" data-dbars style="--z:${z.toFixed(2)}%"><i class="zl"></i>${b.map(y=>`<span class="${y.date===nwDaySel?'on':''}${y.live?' lv':''}">${
       V==='both' ? bar(y.inv ?? 0, 'iv') + bar(y.cash ?? 0, 'cs') : bar(val(y))}</span>`).join('')}</div>`; };
   if (days.length){
-    const win = days.slice(-per[2]);
+    const win = (()=>{ const n = { '1W':7, '1M':30, '3M':91, '6M':182, '1Y':365, 'All':1e5 }[chR] || 30, e = new Date(days[days.length-1].date+'T00:00:00'); e.setDate(e.getDate() - n + 1);
+      const w = days.filter(y=>y.date >= ymd(e)); return w.length ? w : days.slice(-1); })();
     if (nwDaySel==null || !days.some(x=>x.date===nwDaySel)) nwDaySel = days[days.length-1].date;
     const x = days.find(y=>y.date===nwDaySel), sp = split(x).filter(Boolean);
     const sofar = x.live ? ' <span class="faint">· so far</span>' : '';
@@ -3801,18 +3792,21 @@ function renderTrends(daily, monthly){
     const sInv = win.reduce((a,y)=>a+(y.inv ?? 0),0), sCash = win.reduce((a,y)=>a+(y.cash ?? 0),0);
     const vseg = `<div class="dvseg" role="tablist">${[['both','Combined'],['nw','Net worth'],['inv','Investments']].map(([k,l])=>`<button data-chv="${k}" class="${k===V?'on':''}">${l}</button>`).join('')}</div>`;
     const other = y => V==='inv' ? (y.mkt!=null ? [`Market ${tipS(y.mkt, fCompact(y.mkt).replace(/^₹/,'+₹'), true)}`, `Added ${tipS(y.add, fCompact(y.add).replace(/^₹/,'+₹'), true)}`] : []) : split(y).filter(Boolean);
-    // Investments: the total, split into market and money put in, over the day bars
-    const barCard = () => { const sM = win.reduce((a,y)=>a+(y.mkt ?? 0),0), sA = win.reduce((a,y)=>a+(y.add ?? 0),0);
-      $('#nwDays').innerHTML = chips + `
-      <div class="cuh"><div class="cubig num money ${cls(net)}">${fChg(net)}</div><div class="cucap">in the last ${win.length} ${per[3]}${win[win.length-1].live ? ', today so far' : ''}</div></div>
+    // Investments: the total, split into market and money put in; under it a running line from the start of
+    // the range — the total change (blue) and the market's part alone (dashed). The gap is the money put in.
+    const lineCard = () => { const sM = win.reduce((a,y)=>a+(y.mkt ?? 0),0), sA = win.reduce((a,y)=>a+(y.add ?? 0),0);
+      $('#nwDays').innerHTML = `
+      <div class="cuh"><div class="cubig num money ${cls(net)}">${fChg(net)}</div><div class="cucap">in the last ${win.length} day${win.length===1?'':'s'}${win[win.length-1].live ? ', today so far' : ''}</div></div>
       <div class="cusp"><i style="flex:${Math.abs(sM)};background:var(--${sM<0?'down':'up'})"></i><i style="flex:${Math.abs(sA)};background:var(--blue)"></i></div>
       <div class="culg cul2"><span>Market <b class="num money ${cls(sM)}">${fChg(sM)}</b></span><span>You put in <b class="num money ${cls(sA)}">${fChg(sA)}</b></span></div>
-      ${dBars(win)}
-      <div class="dax"><span>${esc(axLab(win[0]))}</span><span>${esc(axLab(win[win.length-1]))}</span></div>
-      <div class="cusel"><span>${esc(dLab(x))}${x.live?' <span class="faint">so far</span>':''}</span><b class="num money ${cls(val(x))}">${fChg(val(x))}</b></div>`
-      + (bSel.length ? `<div class="chbn">${esc(bSel.join(' + '))} · logged nightly from 22 Oct; today's move shows tomorrow</div>` : ''); };
-    if (V==='inv') barCard(); else
-    $('#nwDays').innerHTML = chips + (V==='both' ? `
+      <div class="chart tall cuch" id="nwCum"><svg></svg><div class="tip"></div></div>
+      <div class="dax"><span>${esc(axLab(win[0]))}</span><span class="culk"><i></i>Total <i class="dash"></i>Market</span><span>${esc(axLab(win[win.length-1]))}</span></div>
+      <div class="ranges" id="chRanges">${['1W','1M','3M','6M','1Y','All'].map(r=>`<button data-chr="${r}" class="${r===chR?'on':''}">${r}</button>`).join('')}</div>
+      `;
+      cumChart($('#nwCum'), win, dLab);
+      $$('#chRanges [data-chr]').forEach(b=>b.onclick=()=>{ if (b.dataset.chr===chR) return; chR = b.dataset.chr; save('inv.chR', chR); nwDaySel = null; nwDayAll = false; dselExit(); renderTrends(daily, monthly); }); };
+    if (V==='inv') lineCard(); else
+    $('#nwDays').innerHTML = pseg + vseg + (V==='both' ? `
       <div class="spstats lcr dsum"><div><span>Net worth</span><b class="num money ${cls(net)}">${fChg(net)}</b></div>
         <div><span><i class="dk iv"></i>Investments</span><b class="num money ${cls(sInv)}">${fChg(sInv)}</b></div><div><span><i class="dk cs"></i>Cash</span><b class="num money ${cls(sCash)}">${fChg(sCash)}</b></div></div>` : `
       ${V==='inv' ? (()=>{ const sM = win.reduce((a,y)=>a+(y.mkt ?? 0),0), sA = win.reduce((a,y)=>a+(y.add ?? 0),0);
@@ -3845,20 +3839,7 @@ function renderTrends(daily, monthly){
     window.__nwRerender = ()=>renderTrends(daily,monthly);
     $$('#nwDays [data-chv]').forEach(b=>b.onclick=()=>{ if (b.dataset.chv===nwChgV) return; nwChgV = b.dataset.chv; save('inv.nwChgV', nwChgV); renderTrends(daily,monthly); });
     if (DSEL) dselPaint();
-  } else { $('#nwDays').innerHTML = chips + '<div class="empty">Not enough days logged yet</div>'; $('#nwDayList').hidden = true; }
-  { const re = ()=>renderTrends(daily, monthly), box = $('#nwDays');
-    $$('[data-chip]', box).forEach(b=>b.onclick = e=>{ e.stopPropagation(); const k = b.dataset.chip; chipOpen = chipOpen===k ? null : k; re();
-      if (chipOpen) setTimeout(()=>document.addEventListener('click', function off(ev){
-        if (ev.target.closest && ev.target.closest('#nwDays .chw .menu')) return;
-        document.removeEventListener('click', off, true); if (chipOpen){ ev.stopPropagation(); ev.preventDefault(); chipOpen = null; re(); } }, true), 0); });
-    $$('[data-cv]', box).forEach(b=>b.onclick = e=>{ e.stopPropagation(); chipOpen = null; if (b.dataset.cv!==nwChgV){ nwChgV = b.dataset.cv; save('inv.nwChgV', nwChgV); } re(); });
-    $$('[data-cp]', box).forEach(b=>b.onclick = e=>{ e.stopPropagation(); chipOpen = null; if (b.dataset.cp!==nwPer){ dselExit(); nwPer = b.dataset.cp; save('inv.nwPer', nwPer); nwDaySel = null; nwDayAll = false; } re(); });
-    $$('[data-cb]', box).forEach(b=>b.onclick = e=>{ e.stopPropagation(); const v = b.dataset.cb;
-      if (v==='__all') chB = 'all';
-      else { const cur = chB==='all' ? [] : bTick.slice(), i = cur.indexOf(v);
-        if (i>=0){ if (cur.length===1) return; cur.splice(i,1); } else cur.push(v);   // keep at least one ticked
-        chB = cur; }
-      save('inv.chB', chB); nwDaySel = null; dselExit(); re(); }); }
+  } else { $('#nwDays').innerHTML = '<div class="empty">Not enough days logged yet</div>'; $('#nwDayList').hidden = true; }
   $$('#nwDays [data-per]').forEach(b=>b.onclick=()=>{ if (b.dataset.per===nwPer) return; dselExit(); nwPer=b.dataset.per; save('inv.nwPer',nwPer); nwDaySel=null; nwDayAll=false; renderTrends(daily,monthly); });
 
 }
@@ -4007,6 +3988,37 @@ function areaChart(el, pts){
 }
 
 
+// Net worth › Change: the running change over the range — total (blue, shaded to zero) and market
+// only (dashed). Hover or drag for a day's numbers, like the other charts.
+function cumChart(el, win, lab){
+  if (!el) return;
+  const svg = el.querySelector('svg'), tip = el.querySelector('.tip'), {W,H} = chartBox(el);
+  let a = 0, m = 0; const pts = [{ a:0, m:0 }].concat(win.map(y=>({ y, a: a += (y.inv ?? 0), m: m += (y.mkt ?? 0) })));
+  const P = {t:8,r:6,b:8,l:6}, vals = pts.flatMap(p=>[p.a,p.m]); let lo = Math.min(0,...vals), hi = Math.max(0,...vals);
+  const pad = (hi-lo)*0.1 || 1; lo -= pad; hi += pad;
+  const L = pts.length-1, x = i=>P.l+(i/L)*(W-P.l-P.r), y = v=>P.t+(1-(v-lo)/(hi-lo))*(H-P.t-P.b);
+  const path = k=>pts.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p[k]).toFixed(1)}`).join('');
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML = `<defs><linearGradient id="cug" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--blue)" stop-opacity=".14"/><stop offset="1" stop-color="var(--blue)" stop-opacity=".02"/></linearGradient></defs>
+    <line class="gridline" x1="0" x2="${W}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke-dasharray="3 3"/>
+    <path d="${path('a')}L${x(L).toFixed(1)},${y(0).toFixed(1)}L${x(0).toFixed(1)},${y(0).toFixed(1)}Z" fill="url(#cug)"/>
+    <path d="${path('m')}" fill="none" stroke="var(--ink-3)" stroke-width="1.6" stroke-dasharray="4 4" stroke-linejoin="round"/>
+    <path d="${path('a')}" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${x(L)}" cy="${y(pts[L].m)}" r="3" fill="var(--ink-3)" stroke="var(--canvas)" stroke-width="2"/>
+    <circle cx="${x(L)}" cy="${y(pts[L].a)}" r="3.6" fill="var(--blue)" stroke="var(--canvas)" stroke-width="2"/>
+    <line id="ah" class="gridline" y1="${P.t}" y2="${H-P.b}" stroke-dasharray="3 3" style="display:none"/>
+    <circle id="cud" r="3.6" fill="var(--blue)" stroke="var(--canvas)" stroke-width="2" style="display:none"/>`;
+  const ah = svg.querySelector('#ah'), dot = svg.querySelector('#cud');
+  const move = ev => { const r = svg.getBoundingClientRect(); if (!r.width) return; const vx = ((ev.touches?ev.touches[0].clientX:ev.clientX)-r.left)*W/r.width;
+    const i = Math.max(1, Math.min(L, Math.round((vx-P.l)/(W-P.l-P.r)*L))), p = pts[i];
+    ah.setAttribute('x1',x(i)); ah.setAttribute('x2',x(i)); ah.style.display = ''; dot.setAttribute('cx',x(i)); dot.setAttribute('cy',y(p.a)); dot.style.display = '';
+    tip.innerHTML = `<b>${esc(lab(p.y))}${p.y.live?' · so far':''}</b><br>That day ${fChg(p.y.inv)}<br>Total ${fChg(p.a)} · Market ${fChg(p.m)}`;
+    tip.style.display = 'block'; const hw = tip.offsetWidth/2 + 2; tip.style.left = Math.max(hw, Math.min(W-hw, x(i))) + 'px'; };
+  const leave = ()=>{ tip.style.display = 'none'; ah.style.display = 'none'; dot.style.display = 'none'; };
+  el.onmousemove = move; el.onmouseleave = leave;
+  el.ontouchstart = el.ontouchmove = e=>move(e); el.ontouchend = el.ontouchcancel = leave;
+}
+
 function hoverable(el, svg, tip, pts, x, W, fmt){
   const ah = svg.querySelector('#ah');
   const move = ev => {
@@ -4060,7 +4072,6 @@ function mgPicker(monthly, bm){
 }
 function chPicker(daily, monthly, bks){
   const el = $('#chPick'); if (!el) return;
-  el.innerHTML = ''; return;   // moved into the Change card's chips
   if (nwChgV!=='inv' || !bks.length){ el.innerHTML = ''; return; }
   const sel = chB==='all' ? [] : chB.filter(b=>bks.includes(b));
   const lbl = chB==='all' || !sel.length ? 'Total' : sel.length===bks.length ? 'All buckets' : sel.length===1 ? sel[0] : sel.length + ' buckets';

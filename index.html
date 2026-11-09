@@ -348,6 +348,8 @@ main{padding:0}
 .culg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:13px;color:var(--ink-2)}
 .cusp{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;margin-top:14px}.cusp i{display:block}.cul2{justify-content:space-between;margin-top:6px}
 .culk{display:flex;align-items:center;gap:5px}.culk i{display:inline-block;width:12px;border-top:2px solid var(--blue)}.culk i.dash{border-top:2px dashed var(--ink-3);margin-left:6px}
+#nwDays{position:relative}.chvt{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--sunken);color:var(--ink-2)}.chvt svg{width:18px;height:18px}.chvt:active{opacity:.6}
+.cubw{position:relative;margin-top:14px;touch-action:pan-y}.dbars[data-cbars]:before{content:none}.cubw .tip{white-space:nowrap}.cubw .dbars{margin:0 0 6px}
 #nwCum{margin-top:14px;touch-action:pan-y}#nwCum .tip{white-space:nowrap}#chRanges{margin-top:12px}
 .culg b{white-space:nowrap}
 .dax{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3)}
@@ -2453,7 +2455,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11c';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11d';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3683,7 +3685,7 @@ async function loadBucketDaily(){
   catch(e){}
   finally{ bdBusy = false; }
 }
-let nwDaySel = null, nwDayAll = false, nwPer = 'D', nwChgV = 'inv', chR = load('inv.chR') || '1M';   // Change: investments only, one point a day, over 1W to All   // nwChgV: what the change shows — net worth, investments, or both side by side   // Day by day: the tapped bar, and whether the list shows every day
+let nwDaySel = null, nwDayAll = false, nwPer = 'D', nwChgV = 'inv', chR = load('inv.chR') || '1M', chView = load('inv.chView') || 'line';   // Change: investments only, one point a day, over 1W to All   // nwChgV: what the change shows — net worth, investments, or both side by side   // Day by day: the tapped bar, and whether the list shows every day
 const NW_MOVE = ['1M','3M','YTD','1Y','All'];
 function renderTrends(daily, monthly){
   const d = D && D.data, nw = d && d.netWorth, h = (nw && nw.head) || {}, cash = liveCash();
@@ -3795,15 +3797,19 @@ function renderTrends(daily, monthly){
     // Investments: the total, split into market and money put in; under it a running line from the start of
     // the range — the total change (blue) and the market's part alone (dashed). The gap is the money put in.
     const lineCard = () => { const sM = win.reduce((a,y)=>a+(y.mkt ?? 0),0), sA = win.reduce((a,y)=>a+(y.add ?? 0),0);
-      $('#nwDays').innerHTML = `
+      $('#nwDays').innerHTML = `<button class="chvt" data-chvt aria-label="${chView==='bars' ? 'Show as a line' : 'Show day by day bars'}">${chView==='bars'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 3 5-7 4 4"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 20V10M12 20V4M18 20v-7"/></svg>'}</button>
       <div class="cuh"><div class="cubig num money ${cls(net)}">${fChg(net)}</div><div class="cucap">in the last ${win.length} day${win.length===1?'':'s'}${win[win.length-1].live ? ', today so far' : ''}</div></div>
       <div class="cusp"><i style="flex:${Math.abs(sM)};background:var(--${sM<0?'down':'up'})"></i><i style="flex:${Math.abs(sA)};background:var(--blue)"></i></div>
       <div class="culg cul2"><span>Market <b class="num money ${cls(sM)}">${fChg(sM)}</b></span><span>You put in <b class="num money ${cls(sA)}">${fChg(sA)}</b></span></div>
-      <div class="chart tall cuch" id="nwCum"><svg></svg><div class="tip"></div></div>
-      <div class="dax"><span>${esc(axLab(win[0]))}</span><span class="culk"><i></i>Total <i class="dash"></i>Market</span><span>${esc(axLab(win[win.length-1]))}</span></div>
+      ${chView==='bars' ? `<div class="cubw" id="nwBars">${dBars(win).replace('data-dbars','data-cbars')}<div class="tip"></div></div>
+      <div class="dax"><span>${esc(axLab(win[0]))}</span><span>${esc(axLab(win[win.length-1]))}</span></div>` : `<div class="chart tall cuch" id="nwCum"><svg></svg><div class="tip"></div></div>
+      <div class="dax"><span>${esc(axLab(win[0]))}</span><span class="culk"><i></i>Total <i class="dash"></i>Market</span><span>${esc(axLab(win[win.length-1]))}</span></div>`}
       <div class="ranges" id="chRanges">${['1W','1M','3M','6M','1Y','All'].map(r=>`<button data-chr="${r}" class="${r===chR?'on':''}">${r}</button>`).join('')}</div>
       `;
-      cumChart($('#nwCum'), win, dLab);
+      if (chView==='bars') barTips($('#nwBars'), win, dLab); else cumChart($('#nwCum'), win, dLab);
+      $('#nwDays [data-chvt]').onclick = ()=>{ chView = chView==='bars' ? 'line' : 'bars'; save('inv.chView', chView); renderTrends(daily, monthly); };
       $$('#chRanges [data-chr]').forEach(b=>b.onclick=()=>{ if (b.dataset.chr===chR) return; chR = b.dataset.chr; save('inv.chR', chR); nwDaySel = null; nwDayAll = false; dselExit(); renderTrends(daily, monthly); }); };
     if (V==='inv') lineCard(); else
     $('#nwDays').innerHTML = pseg + vseg + (V==='both' ? `
@@ -3987,6 +3993,21 @@ function areaChart(el, pts){
   hoverable(el, svg, tip, pts, x, W, p=>`<b>${fDate(p.date)}</b><br>Net worth ${fINR(p.netWorth)}${p.investment>0?`<br>Investments ${fINR(p.investment)}`:''}`);
 }
 
+
+// Net worth › Change, as bars: one per day; hover or drag for that day's numbers, like the line
+function barTips(wrap, win, lab){
+  if (!wrap) return;
+  const bars = wrap.querySelector('[data-cbars]'), tip = wrap.querySelector('.tip'), sp = [...bars.querySelectorAll(':scope > span')], n = sp.length;
+  const show = cx => { const r = bars.getBoundingClientRect(); if (!r.width || !n) return;
+    const k = Math.min(n-1, Math.max(0, Math.floor((cx - r.left)/r.width*n))), y = win[k];
+    sp.forEach((s,i)=>s.classList.toggle('on', i===k));
+    tip.innerHTML = `<b>${esc(lab(y))}${y.live?' · so far':''}</b><br>That day ${fChg(y.inv)}<br>Market ${fChg(y.mkt)} · Added ${fChg(y.add)}`;
+    tip.style.display = 'block'; const w = wrap.clientWidth, hw = tip.offsetWidth/2 + 2, c = (k+.5)/n*r.width + (r.left - wrap.getBoundingClientRect().left);
+    tip.style.left = Math.max(hw, Math.min(w-hw, c)) + 'px'; };
+  const hide = ()=>{ tip.style.display = 'none'; sp.forEach((s,i)=>s.classList.toggle('on', i===n-1)); };
+  wrap.onmousemove = e=>show(e.clientX); wrap.onmouseleave = hide;
+  wrap.ontouchstart = wrap.ontouchmove = e=>show(e.touches[0].clientX); wrap.ontouchend = wrap.ontouchcancel = hide;
+}
 
 // Net worth › Change: the running change over the range — total (blue, shaded to zero) and market
 // only (dashed). Hover or drag for a day's numbers, like the other charts.

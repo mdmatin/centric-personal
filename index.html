@@ -750,6 +750,7 @@ html[data-theme=dark] .fmenu{background:#2c2c2e;box-shadow:0 10px 30px rgba(0,0,
 .fmenu{overflow-y:auto;overscroll-behavior:contain}
 .fmenu button.ft span{font-weight:600}
 .fmenu button.fa{padding-left:30px;font-size:14.5px;color:var(--ink-2)}
+.fmenu button.fa.on{color:var(--ink)}
 .fchip{display:flex;gap:6px;flex-wrap:wrap}
 .fmenu i{font-style:normal;color:var(--blue);font-weight:600}.fmenu small{font-size:13px;color:var(--ink-2)}
 .tflt button{padding:6px 12px;border-radius:999px;background:var(--canvas);border:1px solid var(--card-edge);font-size:13.5px;color:var(--ink);white-space:nowrap}
@@ -2438,7 +2439,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-08a';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-09a';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -5749,7 +5750,7 @@ function renderSpend(){
   $$('#spBody [data-ziq]').forEach(b=>b.onclick=()=>ziOpenQ(b.dataset.ziq));
   if ($('#cfOther')){ EL.cfs.rows = constrFund().rows.filter(r=>!r.acc).map(r=>r.item).filter(Boolean); renderEditList(EL.cfs); }
   $$('#spBody [data-txf]').forEach(b=>b.onclick=()=>{ txFilter = b.dataset.txf; renderSpend(); });
-  $$('#spBody .fchip [data-txa]').forEach(b=>b.onclick=()=>{ txAType = ''; txAcc = ''; renderSpend(); });
+  $$('#spBody .fchip [data-txa]').forEach(b=>b.onclick=()=>{ txAccs = []; renderSpend(); });
   $$('#spBody [data-fmenu]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); openTxMenu(b); });
   $$('#spBody [data-tx]').forEach(r=>r.onclick=()=>openTx(r.dataset.tx));
   $$('#spBody [data-ym]').forEach(b=>b.onclick=()=>{ spMonth = ymAdd(spMonth, Number(b.dataset.ym)); renderSpend(); });
@@ -6019,13 +6020,12 @@ function xDayGroups(list, showCat){
 let txFilter = 'all', txCounts = {};   // Activity opens on everything; the filter button narrows it
 const TXF = { all:()=>true, ex:x=>x.k==='ex'||x.k==='rf'||x.k==='lq'||x.k==='iv', tr:x=>x.k==='tr', in:x=>x.k==='in' };
 const TXF_LBL = { all:'All', ex:'Expenses', tr:'Transfers', in:'Income' };
-// Activity › filter by account type too: an entry counts if its account (either side of a transfer) is that type.
-// Cash predates account types and counts as a wallet; closed accounts keep their type.
-let txAType = '', txAcc = '';   // one or the other: a whole account type, or a single account
+// Activity › filter by accounts too, as many as you tick: an entry counts if its account (either side of a
+// transfer) is one of them. A type row ticks or unticks all of that type. Cash predates account types and is a wallet.
+let txAccs = [];
 const TXA_LBL = { 'Bank':'Banks', 'Credit card':'Cards', 'Wallet':'Wallets', 'Construction':'Construction' };
 const accTypeOf = n => (((xd()||{}).accounts||[]).find(a=>a.name===n)||{}).type || (n==='Cash' ? 'Wallet' : '');
-const txAOk = (x, t) => !t || [x.e.account, x.e.from, x.e.to].some(n=>n && accTypeOf(n)===t);
-const txAccOk = (x, a) => !a || [x.e.account, x.e.from, x.e.to].includes(a);
+const txAccOk = (x, L) => !L.length || [x.e.account, x.e.from, x.e.to].some(n=>n && L.includes(n));
 // every open account under its type, Cash among the wallets
 const txAccGroups = () => { let L = xAccounts().map(a=>a.name); if (!L.includes('Cash')) L.unshift('Cash');
   return ACC_TYPES.map(t=>[t, L.filter(n=>accTypeOf(n)===t)]).filter(g=>g[1].length); };
@@ -6038,12 +6038,18 @@ function openTxMenu(btn){
   const m = document.createElement('div'); m.className = 'fmenu';
   m.style.top = (r.bottom + 8) + 'px'; m.style.right = Math.max(12, window.innerWidth - r.right) + 'px';
   m.innerHTML = '<div class="fh">Type</div>' + ['all','ex','tr','in'].map(k=>`<button data-txm="${k}"><span>${TXF_LBL[k]}</span>${txFilter===k ? '<i>✓</i>' : `<small class="num">${txCounts[k]||0}</small>`}</button>`).join('')
-    + '<div class="fh">Account</div>' + `<button data-txa=""><span>All accounts</span>${!txAType && !txAcc ? '<i>✓</i>' : `<small class="num">${(txCounts.at||{})['']||0}</small>`}</button>`
-    + txAccGroups().map(([t, L])=>`<button class="ft" data-txa="${esc(t)}"><span>${esc(TXA_LBL[t]||t)}</span>${txAType===t ? '<i>✓</i>' : `<small class="num">${(txCounts.at||{})[t]||0}</small>`}</button>`
-      + L.map(n=>`<button class="fa" data-txacc="${esc(n)}"><span>${esc(n)}</span>${txAcc===n ? '<i>✓</i>' : `<small class="num">${(txCounts.ac||{})[n]||0}</small>`}</button>`).join('')).join('');
+    + '<div class="fh">Accounts</div>' + `<button data-txa=""><span>All accounts</span>${!txAccs.length ? '<i>✓</i>' : `<small class="num">${(txCounts.at||{})['']||0}</small>`}</button>`
+    + txAccGroups().map(([t, L])=>`<button class="ft" data-txa="${esc(t)}"><span>${esc(TXA_LBL[t]||t)}</span>${L.every(n=>txAccs.includes(n)) ? '<i>✓</i>' : `<small class="num">${(txCounts.at||{})[t]||0}</small>`}</button>`
+      + L.map(n=>`<button class="fa ${txAccs.includes(n)?'on':''}" data-txacc="${esc(n)}"><span>${esc(n)}</span>${txAccs.includes(n) ? '<i>✓</i>' : `<small class="num">${(txCounts.ac||{})[n]||0}</small>`}</button>`).join('')).join('');
   m.querySelectorAll('[data-txm]').forEach(b=>b.onclick=()=>{ txFilter = b.dataset.txm; closeTxMenu(); renderSpend(); });
-  m.querySelectorAll('[data-txa]').forEach(b=>b.onclick=()=>{ txAType = b.dataset.txa; txAcc = ''; closeTxMenu(); renderSpend(); });
-  m.querySelectorAll('[data-txacc]').forEach(b=>b.onclick=()=>{ txAcc = b.dataset.txacc; txAType = ''; closeTxMenu(); renderSpend(); });
+  // accounts tick on and off with the menu kept open (where it was scrolled to); All accounts clears and closes
+  const again = () => { const y = m.scrollTop; renderSpend(); const nb = $('#spBody [data-fmenu]'); if (nb){ openTxMenu(nb); const m2 = $('.fmenu'); if (m2) m2.scrollTop = y; } };
+  m.querySelectorAll('[data-txa]').forEach(b=>b.onclick=()=>{ const t = b.dataset.txa;
+    if (!t){ txAccs = []; closeTxMenu(); renderSpend(); return; }
+    const L = (txAccGroups().find(g=>g[0]===t)||[0,[]])[1];
+    txAccs = L.every(n=>txAccs.includes(n)) ? txAccs.filter(n=>!L.includes(n)) : [...new Set(txAccs.concat(L))]; again(); });
+  m.querySelectorAll('[data-txacc]').forEach(b=>b.onclick=()=>{ const n = b.dataset.txacc;
+    txAccs = txAccs.includes(n) ? txAccs.filter(x=>x!==n) : txAccs.concat(n); again(); });
   document.body.append(bd, m);
   const cap = window.innerHeight - (r.bottom + 8) - 90; if (m.scrollHeight > cap) m.style.maxHeight = Math.max(240, cap) + 'px';   // a long account list scrolls inside the menu
 }
@@ -6357,7 +6363,7 @@ function spListHtml(){
   const spent = all.filter(counts).reduce((s,x)=>s+x.e.amount,0);
   const inn = all.filter(x=>x.k==='in' && !constrAcc(x.e.account)).reduce((s,x)=>s+x.e.amount,0);
   const keep = TXF[txFilter] || TXF.all;
-  const list = all.filter(x=>keep(x) && txAOk(x, txAType) && txAccOk(x, txAcc)).sort((a,b)=>a.e.date<b.e.date?1:a.e.date>b.e.date?-1:0);
+  const list = all.filter(x=>keep(x) && txAccOk(x, txAccs)).sort((a,b)=>a.e.date<b.e.date?1:a.e.date>b.e.date?-1:0);
   const by = {}; list.forEach(x=>(by[x.e.date]=by[x.e.date]||[]).push(x));
   const days = Object.keys(by).sort().reverse().map(dt=>{
     const sp = by[dt].filter(counts).reduce((s,x)=>s+x.e.amount,0);
@@ -6366,17 +6372,20 @@ function spListHtml(){
       <div class="card tight">${by[dt].map(txRow).join('')}</div>`;
   }).join('');
   // the filter lives behind a button beside search; counts are for this month
-  // type counts within the picked account type, and account-type counts within the picked type
-  const inA = all.filter(x=>txAOk(x, txAType) && txAccOk(x, txAcc)), inT = all.filter(keep);
+  // type counts within the ticked accounts, and account counts within the picked type
+  const inA = all.filter(x=>txAccOk(x, txAccs)), inT = all.filter(keep), G = txAccGroups();
   txCounts = { all: inA.length, ex: inA.filter(TXF.ex).length, tr: inA.filter(TXF.tr).length, in: inA.filter(TXF.in).length,
-    at: Object.fromEntries([''].concat(ACC_TYPES).map(t=>[t, inT.filter(x=>txAOk(x, t)).length])),
-    ac: Object.fromEntries(txAccGroups().flatMap(g=>g[1]).map(n=>[n, inT.filter(x=>txAccOk(x, n)).length])) };
-  const fOn = txFilter !== 'all' || !!txAType || !!txAcc, net = inn - spent;
+    at: Object.fromEntries([['', inT.length]].concat(G.map(([t, L])=>[t, inT.filter(x=>txAccOk(x, L)).length]))),
+    ac: Object.fromEntries(G.flatMap(g=>g[1]).map(n=>[n, inT.filter(x=>txAccOk(x, [n])).length])) };
+  // the chip names one account, a whole type, or how many
+  const whole = G.find(([, L])=>L.length===txAccs.length && L.every(n=>txAccs.includes(n)));
+  const accLbl = !txAccs.length ? '' : txAccs.length===1 ? txAccs[0] : whole ? (TXA_LBL[whole[0]]||whole[0]) : txAccs.length + ' accounts';
+  const fOn = txFilter !== 'all' || txAccs.length > 0, net = inn - spent;
   return `<div class="tline num money"><div><span>Income</span><b class="up">${fINR2(inn)}</b></div><div><span>Expense</span><b>${fINR2(spent)}</b></div><div><span>Net</span><b class="${net<0?'down':''}">${fINR2(net)}</b></div></div>
     ${recDueHtml()}
     <div class="srow"><div class="search" id="xSearch"></div>
       <button class="fbtn ${fOn?'on':''}" data-fmenu aria-label="Filter">${FILTER_IC}</button></div>
-    ${fOn ? `<div class="fchip">${txFilter!=='all' ? `<button data-txf="all">${esc(TXF_LBL[txFilter])}<span aria-hidden="true">✕</span></button>` : ''}${txAType || txAcc ? `<button data-txa="">${esc(txAcc || TXA_LBL[txAType] || txAType)}<span aria-hidden="true">✕</span></button>` : ''}</div>` : ''}
+    ${fOn ? `<div class="fchip">${txFilter!=='all' ? `<button data-txf="all">${esc(TXF_LBL[txFilter])}<span aria-hidden="true">✕</span></button>` : ''}${accLbl ? `<button data-txa="">${esc(accLbl)}<span aria-hidden="true">✕</span></button>` : ''}</div>` : ''}
     <div id="xList">${days || `<div class="empty">Nothing ${fOn?'here':'recorded'} in ${esc(ymLabel(spMonth))}</div>`}</div>`;
 }
 

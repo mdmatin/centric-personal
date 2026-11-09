@@ -406,12 +406,12 @@ html[data-theme=dark] .athb.on{color:#ffd60a}
 .mgsh{position:relative}
 .mgsh .mgpk{display:flex;align-items:center;gap:3px}
 .mgsh .mgpk svg{width:13px;height:13px}
-.mgsh .menu{top:calc(100% - 2px);right:16px;min-width:230px}
-.mgsh .menu button{justify-content:space-between;margin:0;padding:11px 12px;font-size:16px;letter-spacing:-.3px;color:var(--ink)}
+.mgsh .menu{top:calc(100% - 2px);right:16px;min-width:0;width:max-content}
+.mgsh .menu button{justify-content:space-between;gap:24px;margin:0;padding:11px 12px;font-size:16px;letter-spacing:-.3px;color:var(--ink)}
 .mgsh .menu button i{width:20px;height:20px;flex:none;color:var(--blue)}
 .mgsh .menu button i svg{width:20px;height:20px}
 .chbn{margin-top:8px;font-size:12px;color:var(--ink-3);text-align:center}
-.mgsh .menu .mgnote{padding:8px 12px 6px;font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--hairline)}
+.mgsh .menu .mgnote{width:0;min-width:100%;box-sizing:border-box;padding:8px 12px 6px;font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--hairline)}
 .nwmg .mgtop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .nwmg .k{font-size:13px;color:var(--ink-2);font-weight:600}.nwmg .k .so{font-weight:400;color:var(--ink-3)}
 .nwmg .mgbig{font:700 28px/1.15 var(--font-disp,inherit);letter-spacing:-.6px;margin-top:2px}
@@ -2455,7 +2455,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11e';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11f';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -4078,7 +4078,7 @@ function mgPicker(monthly, bm){
   el.innerHTML = `<button class="mgpk" data-mgpk aria-haspopup="menu" aria-expanded="${mgMenu}">${esc(lbl)}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>`
     + (mgMenu ? `<div class="menu" role="menu">${bks.map(b=>`<button role="menuitemcheckbox" aria-checked="${sel.includes(b)}" data-mgb="${esc(b)}">${esc(b)}<i>${sel.includes(b)?CK:''}</i></button>`).join('')}
         <button role="menuitemcheckbox" aria-checked="${mgB==='all'}" data-mgb="__all">Total<i>${mgB==='all'?CK:''}</i></button>
-        <div class="mgnote">Buckets start 22 Oct 2026. Total also has NPS.</div></div>` : '');
+        <div class="mgnote">Buckets from 22 Oct. Total also has NPS.</div></div>` : '');
   const re = () => nwMonthlyCard(monthly);
   $('[data-mgpk]', el).onclick = e=>{ e.stopPropagation(); mgMenu = !mgMenu; re();
     if (mgMenu) setTimeout(()=>document.addEventListener('click', function off(ev){
@@ -4100,7 +4100,7 @@ function chPicker(daily, monthly, bks){
   el.innerHTML = `<button class="mgpk" data-chpk aria-haspopup="menu" aria-expanded="${chMenu}">${esc(lbl)}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>`
     + (chMenu ? `<div class="menu" role="menu">${bks.map(b=>`<button role="menuitemcheckbox" aria-checked="${sel.includes(b)}" data-chb="${esc(b)}">${esc(b)}<i>${sel.includes(b)?CK:''}</i></button>`).join('')}
         <button role="menuitemcheckbox" aria-checked="${chB==='all'}" data-chb="__all">Total<i>${chB==='all'?CK:''}</i></button>
-        <div class="mgnote">Buckets start 22 Oct 2026. Total also has NPS.</div></div>` : '');
+        <div class="mgnote">Buckets from 22 Oct. Total also has NPS.</div></div>` : '');
   const re = () => renderTrends(daily, monthly);
   $('[data-chpk]', el).onclick = e=>{ e.stopPropagation(); chMenu = !chMenu; re();
     if (chMenu) setTimeout(()=>document.addEventListener('click', function off(ev){

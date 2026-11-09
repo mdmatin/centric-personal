@@ -1800,7 +1800,22 @@ body.selecting .row[data-tx]::before,body.selecting .row[data-xrow]::before{cont
   box-shadow:inset 0 0 0 1.6px var(--ink-3);transition:background-color .15s,box-shadow .15s}
 body.selecting .row.picked::before{box-shadow:none;background:var(--blue) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/13px no-repeat}
 body.selecting .tabs:not(.selbar),body.selecting .fab,body.selecting .dfab{display:none}
-.fab,.dfab{transition:transform .28s cubic-bezier(.3,1.2,.5,1),opacity .2s}body.fabhide .fab,body.fabhide .dfab{transform:translateY(150px) scale(.6);opacity:0;pointer-events:none}
+/* reading down: the + buttons pour into the tab bar like the Mac's genie effect — they narrow, then
+   slide down and shrink into the bar while fading; scrolling up pours them back out. --gx/--gy (set
+   when it starts) is the spot inside the bar they aim for. */
+@keyframes fabGenie{
+  0%{transform:none;opacity:1}
+  30%{transform:translate(calc(var(--gx) * .08), calc(var(--gy) * .12)) scale(.82,1.06);opacity:1}
+  70%{transform:translate(calc(var(--gx) * .7), calc(var(--gy) * .72)) scale(.42,.5);opacity:.85}
+  100%{transform:translate(var(--gx), var(--gy)) scale(.16,.12);opacity:0}}
+@keyframes fabGenieB{
+  0%{transform:none;opacity:1}
+  30%{transform:translate(calc(var(--gx) * .08), calc(var(--gy) * .12)) scale(.82,1.06);opacity:1}
+  70%{transform:translate(calc(var(--gx) * .7), calc(var(--gy) * .72)) scale(.42,.5);opacity:.85}
+  100%{transform:translate(var(--gx), var(--gy)) scale(.16,.12);opacity:0}}
+.fab,.dfab{transform-origin:50% 100%}
+body.fabmin .fab,body.fabmin .dfab{animation:fabGenie .95s cubic-bezier(.45,0,.2,1) forwards;pointer-events:none}
+body.fabback .fab,body.fabback .dfab{animation:fabGenieB .95s cubic-bezier(.45,0,.2,1) reverse both}
 .tabs.selbar{left:12px;right:12px;transform:none;width:auto;padding:8px;gap:10px;align-items:center}
 .tabs.selbar button{min-width:0;flex:none;flex-direction:row;gap:6px;justify-content:center;position:relative;z-index:1}
 .selbar .sx{width:44px;height:44px;border-radius:50%;background:rgba(120,120,128,.16);color:var(--ink)}
@@ -2461,7 +2476,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11n';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11o';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -4895,6 +4910,17 @@ function endNavDrag(e){
 }
 ['pointerup','pointercancel'].forEach(ev => navBar.addEventListener(ev, endNavDrag));
 
+// the + buttons go into the tab bar while reading down and come back out on the way up: each aims
+// for a spot just inside the bar's right end
+function fabGenie(on){
+  const B = document.body; if (on === B.classList.contains('fabmin')) return;
+  const bar = $('.tabs').getBoundingClientRect();
+  // aim on the way in; the way out reuses it (the button is in the bar by then)
+  if (on) ['#fab','#dfab'].forEach(sel=>{ const f = $(sel); if (!f || f.hidden) return; const r = f.getBoundingClientRect(); if (!r.width) return;
+    const tx = bar.right - 60, ty = bar.bottom - (bar.height - 19) / 2;   // the slim bar's middle, near its right end
+    f.style.setProperty('--gx', Math.round(tx - (r.left + r.width/2)) + 'px'); f.style.setProperty('--gy', Math.round(ty - r.bottom) + 'px'); });
+  B.classList.toggle('fabmin', on); B.classList.toggle('fabback', !on);
+}
 // Minimise while reading down, restore on the first upward scroll.
 let navLastY = 0;
 addEventListener('scroll', ()=>{
@@ -4904,7 +4930,7 @@ addEventListener('scroll', ()=>{
   const bar = $('.tabs'), want = down && y > 90;
   if (want === bar.classList.contains('min')) return;
   bar.classList.toggle('min', want);
-  document.body.classList.toggle('fabhide', want);   // the + buttons step aside too, so they never sit on a figure while reading
+  fabGenie(want);   // the + buttons pour into the bar (and back out)
   followBlob(360);
 }, {passive:true});
 

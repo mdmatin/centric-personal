@@ -2455,7 +2455,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11f';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11g';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -4078,7 +4078,7 @@ function mgPicker(monthly, bm){
   el.innerHTML = `<button class="mgpk" data-mgpk aria-haspopup="menu" aria-expanded="${mgMenu}">${esc(lbl)}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>`
     + (mgMenu ? `<div class="menu" role="menu">${bks.map(b=>`<button role="menuitemcheckbox" aria-checked="${sel.includes(b)}" data-mgb="${esc(b)}">${esc(b)}<i>${sel.includes(b)?CK:''}</i></button>`).join('')}
         <button role="menuitemcheckbox" aria-checked="${mgB==='all'}" data-mgb="__all">Total<i>${mgB==='all'?CK:''}</i></button>
-        <div class="mgnote">Buckets from 22 Oct. Total also has NPS.</div></div>` : '');
+        <div class="mgnote">Buckets from 7 Sep. Total also has NPS.</div></div>` : '');
   const re = () => nwMonthlyCard(monthly);
   $('[data-mgpk]', el).onclick = e=>{ e.stopPropagation(); mgMenu = !mgMenu; re();
     if (mgMenu) setTimeout(()=>document.addEventListener('click', function off(ev){
@@ -4100,7 +4100,7 @@ function chPicker(daily, monthly, bks){
   el.innerHTML = `<button class="mgpk" data-chpk aria-haspopup="menu" aria-expanded="${chMenu}">${esc(lbl)}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>`
     + (chMenu ? `<div class="menu" role="menu">${bks.map(b=>`<button role="menuitemcheckbox" aria-checked="${sel.includes(b)}" data-chb="${esc(b)}">${esc(b)}<i>${sel.includes(b)?CK:''}</i></button>`).join('')}
         <button role="menuitemcheckbox" aria-checked="${chB==='all'}" data-chb="__all">Total<i>${chB==='all'?CK:''}</i></button>
-        <div class="mgnote">Buckets from 22 Oct. Total also has NPS.</div></div>` : '');
+        <div class="mgnote">Buckets from 7 Sep. Total also has NPS.</div></div>` : '');
   const re = () => renderTrends(daily, monthly);
   $('[data-chpk]', el).onclick = e=>{ e.stopPropagation(); chMenu = !chMenu; re();
     if (chMenu) setTimeout(()=>document.addEventListener('click', function off(ev){

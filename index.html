@@ -2461,7 +2461,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11m';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11n';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -2509,10 +2509,12 @@ const fINRs = v => v==null ? '—' : (v<0?'−':'+') + '₹' + inrM().format(pai
 // change figures in pills and the line under a value: always whole rupees, whatever Two decimals says
 const fChg = v => v==null ? '—' : (v<0?'−':'+') + '₹' + inr.format(Math.round(Math.abs(v)));
 // a short figure (₹1.2L, ₹4.5k) that shows the exact amount when tapped
-const tipS = (v, txt, signed) => v==null ? txt : `<span class="tipv" data-full="${esc((signed && v>0 ? '+' : '') + fINR2(v))}">${txt}</span>`;
+// its own tag, so rules like '.g3 span' (a label's style) never reach the figure inside
+const tipS = (v, txt, signed) => v==null ? txt : `<t-v class="tipv" data-full="${esc((signed && v>0 ? '+' : '') + fINR2(v))}">${txt}</t-v>`;
 const fCompact = v => { if(v==null) return '—'; const a=Math.abs(v), s=v<0?'−':'';
-  if(a>=1e7) return s+'₹'+(a/1e7).toFixed(2)+'Cr'; if(a>=1e5) return s+'₹'+(a/1e5).toFixed(1)+'L';
-  if(a>=1e3) return s+'₹'+(a/1e3).toFixed(1)+'k'; return s+'₹'+inr.format(a); };
+  const t = (x, n) => x.toFixed(n).replace(/\.?0+$/,'');   // ₹9L, not ₹9.0L
+  if(a>=1e7) return s+'₹'+t(a/1e7,2)+'Cr'; if(a>=1e5) return s+'₹'+t(a/1e5,1)+'L';
+  if(a>=1e3) return s+'₹'+t(a/1e3,1)+'k'; return s+'₹'+inr.format(Math.round(a)); };
 const fPct = (v,signed=true) => { if(v==null) return '—';
   const n=(Math.abs(v)*100).toFixed(2); return (v<0?'−':(signed&&v>0?'+':'')) + n + '%'; };
 const cls = v => v==null||v===0 ? '' : v>0 ? 'up' : 'down';
@@ -2990,7 +2992,7 @@ function editRowMeta(b){
   if (b.usd!=null) return fUSD(b.usd);
   // only the Invested row (it has a Current value) carries a real gain
   if (b.pnl==null || b.current==null) return '';
-  return `<span class="${cls(b.pnl)}"><span class="arrow">${b.pnl>=0?'▲':'▼'}</span> ${fINR(Math.abs(b.pnl))}</span>`;
+  return `<span class="${cls(b.pnl)}">${b.pnl<0?'−':'+'}${fINR(Math.abs(b.pnl))}</span>`;
 }
 function renderEditList(L){
   const el = $(L.sel); if(!el) return;
@@ -3435,7 +3437,7 @@ function renderAssets(holdings, usdInr){
       el.innerHTML = `${chartToggle(assetChart)}${native && haveFx ? `<div class="ccy" role="group" aria-label="Currency"><button data-ccy="usd" class="${inrMode?'':'on'}">$</button><button data-ccy="inr" class="${inrMode?'on':''}">₹</button></div>` : ''}
         <div class="albl">Current value</div><div class="big num money">${bigAmt(usdOut ? mo(total) : fINR2(total))}</div>
         ${(()=>{ const rate = native && haveFx ? `<span class="k">${day!=null?' · ':''}₹${fx.toFixed(2)}/$</span>` : '';   // the dollar rate, only on US Stocks
-          return day!=null || rate ? `<div class="dd num money">${day!=null ? `<span class="tipv" data-full="${esc((day>0?'+':'') + full(day))}">${arrowAmt(day, mo)}</span>${dp!=null?` <span class="${cls(dp)}">(${fPct(Math.abs(dp),false)})</span>`:''} <span class="k">today</span>` : ''}${rate}</div>` : ''; })()}
+          return day!=null || rate ? `<div class="dd num money">${day!=null ? `<span class="tipv" data-full="${esc((day>0?'+':'') + full(day))}">${dayPill(day, mo, dp)}</span> <span class="k">today</span>` : ''}${rate}</div>` : ''; })()}
         <div class="arow num">
           <div><span>Invested</span><b class="money tipv" data-full="${esc(full(invested))}">${km(invested)}</b></div>
           <div><span>Current P&amp;L</span><b class="money tipv ${cls(ret)}" data-full="${esc((ret>0?'+':'') + full(ret))}">${skm(ret)}${rp!=null?` <i>(${fPct(rp,false)})</i>`:''}</b></div>
@@ -3634,8 +3636,7 @@ function renderPlatforms(bk, sel){
     const ret = p.value - p.invested, pc = p.invested ? ret/p.invested : null;
     const d = platformDay(p.platform);
     const day = d && d.dayChange!=null
-      ? `<div class="s num money ${cls(d.dayChange)}">${fINR(Math.abs(d.dayChange))}${d.dayChangePct!=null
-          ? ` (${d.dayChangePct?`<span class="arrow">${d.dayChangePct>0?'▲':'▼'}</span>`:''}${fPct(Math.abs(d.dayChangePct),false)})` : ''}</div>` : '';
+      ? `<div class="s">${dayPill(d.dayChange, fINR, d.dayChangePct)}</div>` : '';
     return `<div class="row tap platrow" data-p="${esc(p.platform)}">${logoMark(p.platform, null, iconFor(p.cats[0] || ''))}
       <div class="l"><div class="n">${esc(p.platform)}</div>
         <div class="m num money"><span class="tipv" data-full="Invested ${esc(fINR2(p.invested))}">${fKL(p.invested)}</span> <span class="faint">(${fPct(pc)})</span></div></div>
@@ -3839,7 +3840,7 @@ function renderTrends(daily, monthly){
       <div class="spstats lcr dsum"><div><span>${win.length} ${per[3]}</span><b class="num money ${cls(net)}">${fChg(net)}</b></div>
         <div><span>Up</span><b class="num up">${ups}</b></div><div><span>Down</span><b class="num down">${dns}</b></div></div>`}`) + `
       <div class="dsel"><div><div class="k">${esc(dLab(x))}${sofar}</div>
-        <div class="v num money ${cls(val(x))}">${fINRs(val(x))}${vpct(x)!=null?` <small>(${fPct(Math.abs(vpct(x)),false)})</small>`:''}</div></div>
+        <div class="v num money ${cls(val(x))}">${fChg(val(x))}${vpct(x)!=null?` <small>(${fPct(Math.abs(vpct(x)),false)})</small>`:''}</div></div>
         <div class="s num money">${other(x).join('<br>')}</div></div>
       ${dBars(win)}
       <div class="dax"><span>${esc(axLab(win[0]))}</span><span>Best ${esc(axLab(best))} · Worst ${esc(axLab(worst))}</span><span>${esc(axLab(win[win.length-1]))}</span></div>`
@@ -3849,7 +3850,7 @@ function renderTrends(daily, monthly){
     window.__nwRows = new Map(days.map(y=>[y.date, y]));
     $('#nwDayList').innerHTML = `<div class="dlh"><span>${nwPer==='D'?'Day':nwPer==='W'?'Week':'Month'}</span><span>Change</span></div>` + shown.map(y=>{ const t = other(y).join(' · ');
       return `<div class="r dr${y.date===nwDaySel?' cur':''}${DSEL && DSEL.has(y.date)?' picked':''}" data-dk="${esc(y.date)}"><div class="a">${esc(dLab(y))}${y.live?' <span class="faint">so far</span>':''}<small class="num money">${fINR(y.nw)}</small></div>
-        <div class="z num money ${cls(val(y))}">${fINRs(val(y))}${vpct(y)!=null?` <span class="p">${fPct(Math.abs(vpct(y)),false)}</span>`:''}${t?`<small>${t}</small>`:''}</div></div>`; }).join('')
+        <div class="z num money ${cls(val(y))}">${fChg(val(y))}${vpct(y)!=null?` <span class="p">${fPct(Math.abs(vpct(y)),false)}</span>`:''}${t?`<small>${t}</small>`:''}</div></div>`; }).join('')
       + (src.length > 7 ? `<button class="more" data-dall>${nwDayAll ? 'Show fewer' : 'Show all ' + src.length + ' ' + per[3]}</button>` : '');
     $('#nwDayList').hidden = !src.length;
     const dl = $('#nwDays [data-dbars]');
@@ -4065,7 +4066,7 @@ function renderTxns(txns){
     const list = active ? tqMatch(txns) : txns;
     const MAX = 300; let html='', last=null, open=false;
     list.slice(0, MAX).forEach(t=>{
-      if(t.date!==last){ if(open) html+='</div>'; html+=`<div class="daygroup">${fDate(t.date)}</div><div class="card tight">`; last=t.date; open=true; }
+      if(t.date!==last){ if(open) html+='</div>'; html+=`<div class="daygroup">${dayHd(t.date)}</div><div class="card tight">`; last=t.date; open=true; }
       html+=txnRow(t,false);
     });
     if(open) html+='</div>';
@@ -4262,7 +4263,7 @@ function nwMonthlyCard(monthly){
   const data = ms.slice(-12);
   if (mgSel==null || !data.some(m=>m.month===mgSel)) mgSel = data[data.length-1].month;
   const si = data.findIndex(m=>m.month===mgSel), m = data[si];
-  const sg = v => (v<0?'−':'+') + fINR(Math.abs(v));
+  const sg = v => fChg(v);   // a change: whole rupees, like the Change card
   // bars
   const W = 330, H = 132, P = { t:10, b:20 }, vals = data.map(x=>x.gain||0);
   let lo = Math.min(0,...vals), hi = Math.max(0,...vals); if (hi===lo) hi = lo + 1;
@@ -4274,7 +4275,7 @@ function nwMonthlyCard(monthly){
   const rows = [...ms].reverse(), shown = mgAll ? rows : rows.slice(0,6);
   el.innerHTML = `<div class="mgtop"><div><div class="k">${esc(m.month)}</div>
         <div class="mgbig num money ${cls(m.gain)}">${m.gain!=null ? sg(m.gain) : '—'}</div>
-        <div class="mgsub"><span class="pill sm ${cls(m.returnPct)} num">${m.returnPct!=null ? (m.returnPct<0?'−':'+') + fPct(Math.abs(m.returnPct),false) : '—'}</span> return · <span class="num money">${fINR(m.netContribution||0)}</span> added</div></div>
+        <div class="mgsub"><span class="pill sm ${cls(m.returnPct)} num">${m.returnPct!=null ? (m.returnPct<0?'−':'+') + fPct(Math.abs(m.returnPct),false) : '—'}</span> return · <span class="num money">${fChg(m.netContribution||0)}</span> added</div></div>
       <div class="pg-step mgstep"><button data-mgs="-1" aria-label="Previous month" ${si<=0?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><button data-mgs="1" aria-label="Next month" ${si>=data.length-1?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></div></div>
     <svg class="mgchart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><line x1="0" x2="${W}" y1="${y0}" y2="${y0}" class="z"/>${bars}</svg>
     <div class="mglist"><div class="mgh"><span>Month</span><span>Added</span><span>Gain</span><span>Return</span></div>
@@ -5126,8 +5127,10 @@ const nativeMoney = usdRow => v => v==null ? '—'
 const priceMoney = usdRow => v => v==null ? '—'
   : (v<0?'−':'') + (usdRow ? usd2.format(Math.abs(v)) : '₹' + inrP.format(Math.abs(v)));
 const qtyFmt = n => n==null ? '—' : n>=1000 ? inr.format(Math.round(n)) : String(+Number(n).toFixed(4));
+// today's change: the same pill as Overview — signed amount · %
+const dayPill = (v, m, p) => v==null ? '' : `<span class="pill sm dpill ${cls(v)} num money">${v<0?'−':v>0?'+':''}${m(Math.round(Math.abs(v))).replace(/\.0+(?!\d)/,'')}${p!=null ? ' · ' + fPct(Math.abs(p),false) : ''}</span>`;
 const arrowAmt = (v, m) => v==null ? '—'
-  : `<span class="${cls(v)}">${v?`<span class="arrow">${v>0?'▲':'▼'}</span> `:''}${m(Math.round(Math.abs(v))).replace(/\.0+(?!\d)/,'')}</span>`;   // change: whole units
+  : `<span class="${cls(v)}">${v>0?'+':v<0?'−':''}${m(Math.round(Math.abs(v))).replace(/\.0+(?!\d)/,'')}</span>`;   // change: whole units
 
 // list = the tickers shown alongside it, in on-screen order, for the prev / next arrows
 function openHolding(ticker, list){
@@ -5606,7 +5609,7 @@ function holdingBody(ticker){
         <div class="grow"><div class="t">${esc(ticker)}</div>${h.ltp!=null?`<div class="s"><span class="num money">${pm(h.ltp)}</span></div>`:''}</div>   <!-- just the price under the name -->
         ${chartToggle((pageStack[pageStack.length-1]||{}).showChart)}${ccy}</div>   <!-- as on the US Stocks card: chart button, then $ / ₹ at the edge -->
       <div class="pg-big num money">${bigAmt(m(h.value))}</div>
-      ${day!=null?`<div class="pg-sub num money"><span class="grp">${arrowAmt(day*k, m0)}${h.dayPct!=null?` <span class="${cls(h.dayPct)}">(${fPct(h.dayPct,false)})</span>`:''} <span class="k">today</span></span></div>`:''}
+      ${day!=null?`<div class="pg-sub num money"><span class="grp">${dayPill(day*k, m0, h.dayPct)} <span class="k">today</span></span></div>`:''}
       ${histInner(ticker, (pageStack[pageStack.length-1]||{}).showChart)}
     </div>
 `;
@@ -5662,7 +5665,7 @@ function holdingBody(ticker){
 // Rupee amount per order — column N, or the native amount (× rate for dollars).
 // short rupees for tight tiles: ₹850 · ₹34.6K · ₹2.07L · ₹1.36Cr
 // ▲12.30% / ▼4.10% — the sign carried by the arrow
-function arrowPct(p){ return p==null ? '—' : `${p?`<span class="arrow">${p>0?'▲':'▼'}</span>`:''}${fPct(Math.abs(p),false)}`; }
+function arrowPct(p){ return p==null ? '—' : `${p>0?'+':p<0?'−':''}${fPct(Math.abs(p),false)}`; }   // signed, like the amounts
 function platXirr(txns, value){
   const fl = [];
   for (const t of txns){
@@ -5732,7 +5735,7 @@ function platformBody(name){
         <div class="inwrap"><span>₹</span><input type="text" inputmode="decimal" value="${ca.current ?? 0}" aria-label="${esc(name)} current value"></div>
         <div class="hint">Saved to the Crypto tab · ${esc(ca.name)} current value</div>
         <div class="btns"><button class="cancel">Cancel</button><button class="save">Save</button></div></div>` : ''}
-      ${pdc!=null ? `<div class="pg-sub num money"><span class="grp">${arrowAmt(pdc, fM)}${pd.dayChangePct!=null?` <span class="${cls(pd.dayChangePct)}">(${fPct(Math.abs(pd.dayChangePct),false)})</span>`:''} <span class="k">today</span></span></div>` : ''}
+      ${pdc!=null ? `<div class="pg-sub num money"><span class="grp">${dayPill(pdc, fM, pd.dayChangePct)} <span class="k">today</span></span></div>` : ''}
       ${histInner('P:'+name, top0.showChart)}
     </div>`;
 
@@ -5833,7 +5836,7 @@ function bucketBody(name){
         <div class="grow"><div class="t">${esc(name)}</div><div class="s">${cats.map(x=>esc(CAT_LABEL[x]||x)).join(', ')||'—'} · ${rows.length} holding${rows.length===1?'':'s'}</div></div>
         ${chartToggle(top.showChart)}</div>
       <div class="pg-big num money">${bigAmt(fINR2(val))}</div>
-      ${anyDay ? `<div class="pg-sub num money"><span class="grp">${arrowAmt(day, fINR)}${dayPct!=null?` <span class="${cls(dayPct)}">(${fPct(Math.abs(dayPct),false)})</span>`:''} <span class="k">today</span></span></div>` : ''}
+      ${anyDay ? `<div class="pg-sub num money"><span class="grp">${dayPill(day, fINR, dayPct)} <span class="k">today</span></span></div>` : ''}
       ${histInner('B:'+name, top.showChart)}
     </div>`;
   const seg = `<div class="tabsw"><div class="seg" id="hdSeg">
@@ -6293,7 +6296,7 @@ function xRow(e, showCat){
 }
 function xDayGroups(list, showCat){
   const by = {}; list.forEach(e=>(by[e.date]=by[e.date]||[]).push(e));
-  return Object.keys(by).sort().reverse().map(d=>`<div class="daygroup xday"><span>${esc(fDate(d))}</span><span class="num money">${fINR2(by[d].reduce((a,e)=>a+e.amount,0))}</span></div>
+  return Object.keys(by).sort().reverse().map(d=>`<div class="daygroup xday"><span>${esc(dayHd(d))}</span><span class="num money">${fINR2(by[d].reduce((a,e)=>a+e.amount,0))}</span></div>
     <div class="card tight">${by[d].map(e=>xRow(e, showCat)).join('')}</div>`).join('');
 }
 /* Transactions — expenses, transfers and money in for the month, newest first.
@@ -6560,7 +6563,7 @@ function xsResultsHtml(p){
   const note = xOldBusy && !xOld ? '<div class="xs-n">Loading older entries…</div>' : '';
   if (!L.length) return head + note + (xOldBusy && !xOld ? '' : '<div class="empty">Nothing matches</div>');
   const MAX = 300, by = {}; L.slice(0, MAX).forEach(x=>(by[x.e.date]=by[x.e.date]||[]).push(x));
-  return head + `<div class="xs-n">${L.length} ${L.length===1?'entry':'entries'}${xOldBusy && !xOld ? ' · loading older entries…' : ''}</div>` + Object.keys(by).sort().reverse().map(dt=>`<div class="daygroup tday"><span>${esc(fDate(dt))}<i class="dow"> · ${dowS(dt)}</i></span></div>
+  return head + `<div class="xs-n">${L.length} ${L.length===1?'entry':'entries'}${xOldBusy && !xOld ? ' · loading older entries…' : ''}</div>` + Object.keys(by).sort().reverse().map(dt=>`<div class="daygroup tday"><span>${esc(dayHd(dt))}</span></div>
       <div class="card tight">${by[dt].map(txRow).join('')}</div>`).join('') + (L.length > MAX ? `<div class="empty">Showing the newest ${MAX} — narrow the search to see more</div>` : '');
 }
 function xSearchBody(p){
@@ -6641,6 +6644,7 @@ function txRow(x){
 }
 // short weekday beside each day heading in Activity and search: 28 Oct · Wed
 const dowS = d => new Date(d+'T00:00:00').toLocaleDateString('en-GB', { weekday:'short' });
+const dayHd = d => dowS(d) + ' ' + fDate(d);   // every day heading: Sun 8 Nov
 function spListHtml(){
   const all = txItems(spMonth);
   const counts = x => (x.k==='ex'||x.k==='rf'||x.k==='lq'||x.k==='iv') && !isConstr(x.e.category) && !constrAcc(x.e.account);
@@ -6652,7 +6656,7 @@ function spListHtml(){
   const days = Object.keys(by).sort().reverse().map(dt=>{
     const sp = by[dt].filter(counts).reduce((s,x)=>s+x.e.amount,0);
     const ii = by[dt].filter(x=>x.k==='in').reduce((s,x)=>s+x.e.amount,0);
-    return `<div class="daygroup tday"><span>${esc(fDate(dt))}<i class="dow"> · ${dowS(dt)}</i></span><span class="num money">${ii?`<em class="up">+${fINR2(ii)}</em>`:''}${sp?fINR2(sp):''}</span></div>
+    return `<div class="daygroup tday"><span>${esc(dayHd(dt))}</span><span class="num money">${ii?`<em class="up">+${fINR2(ii)}</em>`:''}${sp?fINR2(sp):''}</span></div>
       <div class="card tight">${by[dt].map(txRow).join('')}</div>`;
   }).join('');
   // the filter lives behind a button beside search; counts are for this month
@@ -6915,8 +6919,8 @@ function spAccountsHtml(){
     n ? `<button data-zi="zakat"><span class="zico">${MOON_IC}</span>Zakat <b class="num money">${fKL(n.owing ? n.cur.left : n.cur.due)}</b></button>` : ''].filter(Boolean).join('');   // Construction · Interest · Zakat
   const head = `<div class="card liq"><div class="hd"><button class="k${liqOpen?' open':''}" data-liqpick aria-expanded="${liqOpen}">Liquid<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><button class="okchip" id="books" hidden aria-label="Books"></button></div>
       <div class="big num money">${bigAmt(fINR2(liquid))}</div>
-      <div class="g3"><div><span>Bank</span><b class="num money">${tipS(sum.bank, fLakh(sum.bank))}</b></div><div><span>Wallet</span><b class="num money">${tipS(sum.wallet, fLakh(sum.wallet))}</b></div>
-        <div><span>Cards</span><b class="num money">${cards.owed > 0 ? tipS(-cards.owed, '−' + fLakh(cards.owed)) : fINR(0)}</b></div></div>
+      <div class="g3"><div><span>Bank</span><b class="num money">${tipS(sum.bank, fCompact(sum.bank))}</b></div><div><span>Wallet</span><b class="num money">${tipS(sum.wallet, fCompact(sum.wallet))}</b></div>
+        <div><span>Cards</span><b class="num money">${cards.owed > 0 ? tipS(-cards.owed, '−' + fCompact(cards.owed)) : '₹0'}</b></div></div>
       ${liqOpen ? `<div class="liqsel">${liqAcc.map(a=>{ const on = !lx.has(a.name), k = accKind(a);
         return `<div class="lr${on?'':' off'}"><span>${esc(a.name)}<small>${k==='card'?'Card':k==='wallet'?'Wallet':'Bank'}</small></span><button class="sw${on?' on':''}" role="switch" aria-checked="${on}" data-liqx="${esc(a.name)}"></button></div>`; }).join('')}
         ${lx.size ? '<div class="lft"><button data-liqall>Show all</button></div>' : ''}</div>` : ''}
@@ -7033,7 +7037,7 @@ function npsBody(p){
   const hero = `<div class="card pg-card pg-hero">
       <div class="pg-id">${mark('NPS')}<div class="grow"><div class="t">NPS</div><div class="s">${esc(N.manager || 'SBI Pension Fund')} · Tier I</div></div></div>
       <div class="pg-big num money">${bigAmt(fINR2(c.value))}</div>
-      ${N.dayChange!=null ? `<div class="pg-sub num money"><span class="grp">${arrowAmt(N.dayChange, fINR)}${N.dayChangePct!=null ? ` <span class="${cls(N.dayChangePct)}">(${fPct(Math.abs(N.dayChangePct),false)})</span>` : ''} <span class="k">today</span></span></div>` : ''}
+      ${N.dayChange!=null ? `<div class="pg-sub num money"><span class="grp">${dayPill(N.dayChange, fINR, N.dayChangePct)} <span class="k">today</span></span></div>` : ''}
       ${c.months.length > 1 ? monthLineChart(c.months, c.vals, c.months[c.months.length-1], null, 0, true) : ''}
       <div class="spstats lcr npstats"><div><span>Invested</span>${kTip(c.invested)}</b></div>
         <div><span>P&amp;L</span>${kTip(c.pnl, cls(c.pnl), c.pnl<0?'−':c.pnl>0?'+':'')}${pc!=null ? ` <em class="pct">${fPct(pc)}</em>` : ''}</b></div>
@@ -7656,7 +7660,7 @@ const ordinal = n => n + (['th','st','nd','rd'][((n%100)-20)%10] || ['th','st','
    Spending: a month at a time (‹ › or tap a bar), six months of bars, and where it went by category.
    Activity: the card's entries, newest first, a few at a time, with a Spends / Payments filter. */
 // a day's heading, as on the Spend list: the date, then money in (green, +) and money out for that day
-const dayHead = (d, inn, out) => `<div class="daygroup tday"><span>${esc(fDate(d))}</span><span class="num money">${inn > 0.004 ? `<em class="up${out > 0.004 ? '' : ' solo'}">+${fINR2(inn)}</em>` : ''}${out > 0.004 ? fINR2(out) : ''}</span></div>`;
+const dayHead = (d, inn, out) => `<div class="daygroup tday"><span>${esc(dayHd(d))}</span><span class="num money">${inn > 0.004 ? `<em class="up${out > 0.004 ? '' : ' solo'}">+${fINR2(inn)}</em>` : ''}${out > 0.004 ? fINR2(out) : ''}</span></div>`;
 const mvDayHead = (d, ms) => dayHead(d, ms.reduce((t,m)=>t + (m.amt > 0 ? m.amt : 0), 0), ms.reduce((t,m)=>t + (m.amt < 0 ? -m.amt : 0), 0));
 const dayRows = (ms, tile) => { const by = {}; ms.forEach(m=>(by[m.date]=by[m.date]||[]).push(m));
   return Object.keys(by).sort().reverse().map(d=>`${mvDayHead(d, by[d])}

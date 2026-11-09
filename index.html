@@ -265,6 +265,7 @@ main{padding:0}
 .loadmore{display:block;width:calc(100% - 32px);margin:4px 16px 0;padding:13px;border-radius:14px;
   background:var(--canvas);border:1px solid var(--card-edge);font-size:15px;font-weight:600;color:var(--blue)}
 .loadmore[disabled]{opacity:.55}
+.loadmore.lmsm{width:auto;margin:8px auto 0;padding:8px 18px;border-radius:999px;font-size:14px}
 .loadend{text-align:center;padding:14px 16px 0;font-size:12.5px;color:var(--ink-3)}
 .htools{display:flex;align-items:center;justify-content:space-between;margin:0 16px 8px}.htools[hidden],#assetSearch[hidden]{display:none}
 .hsort{position:relative;display:flex;align-items:center;gap:5px;font-size:14px;color:var(--ink-2);padding:6px 2px}
@@ -2459,7 +2460,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11i';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11j';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -4003,6 +4004,7 @@ function tqWire(){
   $('#tqF').innerHTML = FILTER_IC;
   const inp = box.querySelector('input');
   const re = () => D && renderTxns(D.data.transactions);
+  inp.onfocus = () => { if (!txnsExhausted) tqLoadAll(); };
   inp.oninput = () => { tq.q = inp.value; box.classList.toggle('has', !!tq.q); re(); };
   inp.onkeydown = e => {
     if (e.key==='Enter' && tq.q.trim()){ tq.toks.push({ f:'*', v:tq.q.trim() }); tq.q = ''; inp.value = ''; box.classList.remove('has'); re(); }
@@ -4039,7 +4041,7 @@ function renderTxns(txns){
   tqWire();
   txns = txns || [];
   const active = tq.toks.length || tqOn(), typing = !!tq.q.trim();
-  if ((active || typing) && !txnsExhausted && !tqBusy) tqLoadAll();
+  if ((active || typing || tq.fo) && !txnsExhausted && !tqBusy) tqLoadAll();   // the filter's lists need every trade too
   $('#tqF').classList.toggle('on', !!(tqOn() || tq.fo)); $('#tqF').setAttribute('aria-expanded', tq.fo ? 'true' : 'false');
   $('#tqTop').innerHTML = tqTopHtml(txns);
   const loading = tqBusy ? '<div class="xs-n">Loading every trade…</div>' : '';
@@ -4063,7 +4065,7 @@ function renderTxns(txns){
     const canLoadMore = !active && !txnsExhausted;
     $('#txnList').innerHTML = loading + head + (html || `<div class="empty">${active ? (tqBusy ? '' : 'No trades match') : 'No transactions'}</div>`)
       + (list.length > MAX ? `<div class="empty">Showing the newest ${MAX} — narrow the search to see more</div>` : '')
-      + (canLoadMore ? `<button class="loadmore" id="btnMoreTxns">Load older</button>` : '')
+      + (canLoadMore ? `<button class="loadmore lmsm" id="btnMoreTxns">Load 30 more</button>` : '')
       + (txnsExhausted && !active ? `<div class="loadend">${list.length} transactions · that is everything</div>` : '');
     $$('#txnList .row').forEach(b=>b.onclick=()=>openSheet(txns.find(t=>t.row==b.dataset.row)));
     const more = $('#btnMoreTxns'); if(more) more.onclick = loadOlderTxns;
@@ -4949,7 +4951,7 @@ function showHoldSec(k){
    The first load carries 30 transactions — enough for Overview's Recent list
    and for the top of Activity. Older ones arrive only when asked for, a page
    at a time, so nothing pays for history it never looks at. */
-const TXN_PAGE = 120;
+const TXN_PAGE = 30;
 let txnsExhausted = false, txnsBusy = false;
 async function loadOlderTxns(){
   if (txnsExhausted || txnsBusy || !D) return;
@@ -4971,7 +4973,7 @@ async function loadOlderTxns(){
   finally{
     txnsBusy = false;
     const b2 = $('#btnMoreTxns');
-    if (b2){ b2.disabled = false; b2.textContent = 'Load older'; }
+    if (b2){ b2.disabled = false; b2.textContent = 'Load 30 more'; }
   }
 }
 

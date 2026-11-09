@@ -2440,7 +2440,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-09d';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-10a';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3719,6 +3719,10 @@ function renderTrends(daily, monthly){
   const days = ends.map((e,i)=>({ e, q: i ? ends[i-1].p : mkt[0] })).filter(o=>o.e.p!==o.q).map(({e,q})=>{ const p = e.p, chg = p.netWorth - q.netWorth;
     const inv = p.investment!=null && q.investment!=null ? p.investment - q.investment : null;
     return { date:e.k, last:p.date, live:!!p.live, nw:p.netWorth, chg, pct: q.netWorth ? chg/q.netWorth : null, inv, invPct: inv!=null && q.investment ? inv/q.investment : null, cash: inv==null ? null : chg - inv }; });
+  // money put in that period: the pay-in logged on each day (F), so Investments splits into market + money added
+  const payOn = new Map(all.map(p=>[p.date, Number(p.payInOut)||0]));
+  days.forEach((y,i)=>{ const from = i ? days[i-1].last : mkt[0].date; let a = 0; payOn.forEach((v,d)=>{ if (d > from && d <= y.last) a += v; }); if (y.live) a = 0;   // today so far is the market move only; today's buys land in tomorrow's log
+    y.add = a; y.mkt = y.inv!=null ? y.inv - a : null; });
   const dd = s => new Date(s+'T00:00:00');
   const dLab = x => { if (nwPer==='D') return dd(x.date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
     if (nwPer==='M') return dd(x.date+'-01').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
@@ -3745,12 +3749,15 @@ function renderTrends(daily, monthly){
     const best = win.reduce((a,y)=>val(y)>val(a)?y:a, win[0]), worst = win.reduce((a,y)=>val(y)<val(a)?y:a, win[0]);
     const sInv = win.reduce((a,y)=>a+(y.inv ?? 0),0), sCash = win.reduce((a,y)=>a+(y.cash ?? 0),0);
     const vseg = `<div class="dvseg" role="tablist">${[['both','Combined'],['nw','Net worth'],['inv','Investments']].map(([k,l])=>`<button data-chv="${k}" class="${k===V?'on':''}">${l}</button>`).join('')}</div>`;
-    const other = y => V==='inv' ? [`Net worth ${fCompact(y.chg).replace(/^₹/,'+₹')}`] : split(y).filter(Boolean);
+    const other = y => V==='inv' ? (y.mkt!=null ? [`Market ${fCompact(y.mkt).replace(/^₹/,'+₹')}`, `Added ${fCompact(y.add).replace(/^₹/,'+₹')}`] : []) : split(y).filter(Boolean);
     $('#nwDays').innerHTML = pseg + vseg + (V==='both' ? `
       <div class="spstats lcr dsum"><div><span>Net worth</span><b class="num money ${cls(net)}">${fChg(net)}</b></div>
         <div><span><i class="dk iv"></i>Investments</span><b class="num money ${cls(sInv)}">${fChg(sInv)}</b></div><div><span><i class="dk cs"></i>Cash</span><b class="num money ${cls(sCash)}">${fChg(sCash)}</b></div></div>` : `
+      ${V==='inv' ? (()=>{ const sM = win.reduce((a,y)=>a+(y.mkt ?? 0),0), sA = win.reduce((a,y)=>a+(y.add ?? 0),0);
+        return `<div class="spstats lcr dsum"><div><span>${win.length} ${per[3]}</span><b class="num money ${cls(net)}">${fChg(net)}</b></div>
+        <div><span>Market</span><b class="num money ${cls(sM)}">${fChg(sM)}</b></div><div><span>Money added</span><b class="num money ${cls(sA)}">${fChg(sA)}</b></div></div>`; })() : `
       <div class="spstats lcr dsum"><div><span>${win.length} ${per[3]}</span><b class="num money ${cls(net)}">${fChg(net)}</b></div>
-        <div><span>Up</span><b class="num up">${ups}</b></div><div><span>Down</span><b class="num down">${dns}</b></div></div>`) + `
+        <div><span>Up</span><b class="num up">${ups}</b></div><div><span>Down</span><b class="num down">${dns}</b></div></div>`}`) + `
       <div class="dsel"><div><div class="k">${esc(dLab(x))}${sofar}</div>
         <div class="v num money ${cls(val(x))}">${fINRs(val(x))}${vpct(x)!=null?` <small>(${fPct(Math.abs(vpct(x)),false)})</small>`:''}</div></div>
         <div class="s num money">${other(x).join('<br>')}</div></div>
@@ -3807,7 +3814,8 @@ function dselPaint(){
   const unit = nwPer==='D' ? 'day' : nwPer==='W' ? 'week' : 'month';
   const tot = $('#dselTot'), cnt = $('#dselCnt');
   if (tot){ tot.textContent = fINRs(sum); tot.className = 'num money ' + cls(sum); }
-  if (cnt) cnt.textContent = `${it.length} ${unit}${it.length===1?'':'s'}` + (!it.length ? '' : nwChgV==='inv' ? ` · Net worth ${fChg(chg)}` : inv!=null ? ` · Inv ${fChg(inv)} · Cash ${fChg(chg-inv)}` : '');
+  const mk = it.reduce((a,y)=>a+(y.mkt ?? 0),0), ad = it.reduce((a,y)=>a+(y.add ?? 0),0);
+  if (cnt) cnt.textContent = `${it.length} ${unit}${it.length===1?'':'s'}` + (!it.length ? '' : nwChgV==='inv' ? ` · Market ${fChg(mk)} · Added ${fChg(ad)}` : inv!=null ? ` · Inv ${fChg(inv)} · Cash ${fChg(chg-inv)}` : '');
 }
 document.addEventListener('pointerdown', ev=>{
   const r = ev.target.closest && ev.target.closest(DSEL_ROW); if (!r || DSEL) return;

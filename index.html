@@ -2455,7 +2455,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11d';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11e';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3430,7 +3430,7 @@ function renderAssets(holdings, usdInr){
           return day!=null || rate ? `<div class="dd num money">${day!=null ? `<span class="tipv" data-full="${esc((day>0?'+':'') + full(day))}">${arrowAmt(day, mo)}</span>${dp!=null?` <span class="${cls(dp)}">(${fPct(Math.abs(dp),false)})</span>`:''} <span class="k">today</span>` : ''}${rate}</div>` : ''; })()}
         <div class="arow num">
           <div><span>Invested</span><b class="money tipv" data-full="${esc(full(invested))}">${km(invested)}</b></div>
-          <div><span>Current P&amp;L</span><b class="money ${cls(ret)}"><span class="tipv" data-full="${esc((ret>0?'+':'') + full(ret))}">${skm(ret)}</span>${rp!=null?` <i>(${fPct(rp,false)})</i>`:''}</b></div>
+          <div><span>Current P&amp;L</span><b class="money tipv ${cls(ret)}" data-full="${esc((ret>0?'+':'') + full(ret))}">${skm(ret)}${rp!=null?` <i>(${fPct(rp,false)})</i>`:''}</b></div>
           <div><span>XIRR</span><b class="${xr!=null?cls(xr):''}">${xr!=null?fPct(xr,false):'—'}</b></div>
         </div>
         ${histInner(ck, assetChart, 'assetChart')}`;

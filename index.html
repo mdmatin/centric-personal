@@ -2467,7 +2467,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11s';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11t';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -2764,7 +2764,7 @@ function renderHome(d){
   const tot = (nw.assets||[]).find(a=>a.isTotal) || {};
   $('#kpis').innerHTML = [
     ['Invested', tipS(tot.invested, fCompact(tot.invested)), ''],
-    ['P&L', tipS(tot.currReturns, fCompact(tot.currReturns), true), cls(tot.currReturns)],
+    ['P&L', tipS(tot.currReturns, (tot.currReturns>0?'+':'') + fCompact(tot.currReturns), true), cls(tot.currReturns)],
     ['XIRR', fPct(tot.xirr,false), '']
   ].map(([k,v,c])=>k==='XIRR' ? `<div><button class="kxirr" data-league aria-label="Open the XIRR league"><div class="k">${k}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div><div class="v num money ${c}">${v}</div></button></div>` : `<div><div class="k">${k}</div><div class="v num money ${c}">${v}</div></div>`).join('');
   { const kx = $('#kpis [data-league]'); if (kx) kx.onclick = () => pushPage({ kind:'league', tab:'assets' }); }
@@ -2777,7 +2777,7 @@ function renderHome(d){
   $('#assetView').innerHTML = `<button data-av="list" class="${asCards?'':'on'}" aria-label="List">${vIc('M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01')}</button><button data-av="cards" class="${asCards?'on':''}" aria-label="Cards">${vIc('M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z')}</button>`;
   $$('#assetView [data-av]').forEach(b=>b.onclick=()=>{ const y = window.scrollY; save('inv.assetView', b.dataset.av); renderHome(d); holdScroll(y); });
   const aTap = a => /^EPF$/i.test(a.name) && epfD() ? ' tap" data-epf="1' : /^NPS$/i.test(a.name) && npsD() ? ' tap" data-nps="1' : assetCatFor(a.name, d.holdings) ? ' tap" data-acat="' + esc(assetCatFor(a.name, d.holdings)) : '';
-  const aPill = a => a.dayChange!=null ? `<span class="pill sm dpill ${cls(a.dayChange)} num money">${fChg(a.dayChange)}${a.dayChangePct!=null ? ' · ' + fPct(Math.abs(a.dayChangePct),false) : ''}</span>` : '';
+  const aPill = a => dayPill(a.dayChange, fINR, a.dayChangePct);   // today's change: the same pill as everywhere else
   if (asCards){
     // cards: value, its share of the total (bar and %), today's change
     const sum = rows.reduce((t,a)=>t+Math.max(0,a.value||0),0) || 1;
@@ -2791,7 +2791,7 @@ function renderHome(d){
       ${mark(a.name)}
       <div class="l"><div class="n">${esc(assetLbl(a.name))}</div></div>
       <div class="r"><div class="v num money">${fINR(a.value)}</div>${a.dayChange!=null
-        ? `<div class="s"><span class="pill sm dpill ${cls(a.dayChange)} num money">${fChg(a.dayChange)}${a.dayChangePct!=null ? ' · ' + fPct(Math.abs(a.dayChangePct),false) : ''}</span></div>` : ''}</div>
+        ? `<div class="s">${aPill(a)}</div>` : ''}</div>
     </div>`).join('') +
     (tot.value!=null ? `<div class="rowtotal num money"><span>Total</span><span>${fINR(tot.value)}</span></div>` : ''); }
 
@@ -3447,7 +3447,7 @@ function renderAssets(holdings, usdInr){
           return day!=null || rate ? `<div class="dd num money">${day!=null ? `<span class="tipv" data-full="${esc((day>0?'+':'') + full(day))}">${dayPill(day, mo, dp)}</span> <span class="k">today</span>` : ''}${rate}</div>` : ''; })()}
         <div class="arow num">
           <div><span>Invested</span><b class="money tipv" data-full="${esc(full(invested))}">${km(invested)}</b></div>
-          <div><span>Current P&amp;L</span><b class="money tipv ${cls(ret)}" data-full="${esc((ret>0?'+':'') + full(ret))}">${skm(ret)}${rp!=null?` <i>(${fPct(rp,false)})</i>`:''}</b></div>
+          <div><span>Current P&amp;L</span><b class="money tipv ${cls(ret)}" data-full="${esc((ret>0?'+':'') + full(ret))}">${skm(ret)}${rp!=null?` <i>(${fPct(rp)})</i>`:''}</b></div>
           <div><span>XIRR</span><b class="${xr!=null?cls(xr):''}">${xr!=null?fPct(xr,false):'—'}</b></div>
         </div>
         ${histInner(ck, assetChart, 'assetChart')}`;
@@ -5147,7 +5147,7 @@ const priceMoney = usdRow => v => v==null ? '—'
 const qtyFmt = n => n==null ? '—' : n>=1000 ? inr.format(Math.round(n)) : String(+Number(n).toFixed(4));
 // today's change: the same pill as Overview — signed amount · %
 // an arrow means "the market moved today": only today's % carries one; amounts keep + / −
-const upDn = (p, ref) => `<span class="arrow">${(ref ?? p) < 0 ? '▼' : '▲'}</span>`;
+const upDn = (p, ref) => { const v = ref ?? p; return !v ? '' : `<span class="arrow">${v < 0 ? '▼' : '▲'}</span>`; };   // no move, no arrow
 const dayPill = (v, m, p) => v==null ? '' : `<span class="pill sm dpill ${cls(v)} num money">${v<0?'−':v>0?'+':''}${m(Math.round(Math.abs(v))).replace(/\.0+(?!\d)/,'')}${p!=null ? ' · ' + upDn(p, v) + fPct(Math.abs(p),false) : ''}</span>`;
 const arrowAmt = (v, m) => v==null ? '—'
   : `<span class="${cls(v)}">${v>0?'+':v<0?'−':''}${m(Math.round(Math.abs(v))).replace(/\.0+(?!\d)/,'')}</span>`;   // change: whole units
@@ -5489,7 +5489,7 @@ function leagueData(){
   const assets = ((d.netWorth && d.netWorth.assets) || []).filter(a=>!a.isTotal && (a.value||0) > 0 && !/^Less:|^Charges/i.test(a.name)).map(a=>{
     let x = a.xirr; const c = assetCatFor(a.name, d.holdings);
     if (x==null && lgTx && c){ const hs = hold.filter(r=>r.cat===c); x = platXirr(tx.filter(t=>t.category===c), hs.reduce((s,r)=>s+r.value,0)); }
-    return { k:a.name, name:a.name, cat:c, value:a.value, day:a.dayChange||0, x: x ?? null, asset:true }; });
+    return { k:a.name, name:assetLbl(a.name), cat:c, value:a.value, day:a.dayChange||0, x: x ?? null, asset:true }; });
   return { hold, assets, pf: tot.xirr };
 }
 function lgEntry(){
@@ -5646,7 +5646,7 @@ function holdingBody(ticker){
       <div><span>Invested</span><b>${mm(inv)}</b></div>
       <div><span>Avg cost</span><b>${pm(h.avg)}</b></div>
       <div><span>Quantity</span><b>${qtyFmt(h.qty)}</b></div>
-      <div><span>Current P&amp;L${pct!=null?` <em class="${cls(pct)}">(${fPct(pct,false)})</em>`:''}</span><b class="${cls(ret)}">${sgn(ret,mm)}</b></div>
+      <div><span>Current P&amp;L${pct!=null?` <em class="${cls(pct)}">(${fPct(pct)})</em>`:''}</span><b class="${cls(ret)}">${sgn(ret,mm)}</b></div>
       <div><span>Realised</span><b class="${cls(h.realized)}">${sgn(h.realized,mm)}</b></div>
       <div><span>Total P&amp;L</span><b class="${cls(h.totalPnl)}">${sgn(h.totalPnl,mm)}</b></div>
     </div>
@@ -7449,7 +7449,7 @@ function constrBody(p){
     + `<div class="sechead cchd"><h2>All activity</h2>${p.caSO || q ? '' : `<span class="ccic"><button class="hsbtn" data-casrch aria-label="Search">${SRCH_ICON}</button><button class="hsbtn ${cf!=='all'?'on':''}" data-caflt aria-label="Filter">${FILTER_IC}</button></span>`}</div>`
     + (p.caSO || q ? `<div class="casr"><div class="search ccsearch ${q ? 'has' : ''}">${searchInner(p.caQ, 'Search construction').replace('<input ', '<input data-caq ').replace('autocapitalize="characters"', 'autocapitalize="off"')}</div><button class="hsbtn ${cf!=='all'?'on':''}" data-caflt aria-label="Filter">${FILTER_IC}</button></div>` : '')
     + chips
-    + `<div id="caList">${sections || `<div class="card tight"><div class="empty">${q || cf!=='all' ? 'No matches' : 'Nothing yet - log a payment under the Construction category'}</div></div>`}</div>`;
+    + `<div id="caList">${sections || `<div class="card tight"><div class="empty">${q || cf!=='all' ? 'No matches' : 'Nothing yet — log a payment under the Construction category'}</div></div>`}</div>`;
 }
 function wireConstr(p){
   const d = xd() || {}, all = (d.entries||[]).concat(d.constrOld||[]);

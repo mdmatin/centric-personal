@@ -396,6 +396,7 @@ html[data-theme=dark] .athb.on{color:#ffd60a}
 .mgsh .menu button{justify-content:space-between;margin:0;padding:11px 12px;font-size:16px;letter-spacing:-.3px;color:var(--ink)}
 .mgsh .menu button i{width:20px;height:20px;flex:none;color:var(--blue)}
 .mgsh .menu button i svg{width:20px;height:20px}
+.chbn{margin-top:8px;font-size:12px;color:var(--ink-3);text-align:center}
 .mgsh .menu .mgnote{padding:8px 12px 6px;font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--hairline)}
 .nwmg .mgtop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .nwmg .k{font-size:13px;color:var(--ink-2);font-weight:600}.nwmg .k .so{font-weight:400;color:var(--ink-3)}
@@ -2338,7 +2339,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
     <!-- TRENDS -->
     <section class="view" id="v-trend">
       <div class="card nwp nwhero" id="nwComp"></div>
-      <div class="sechead"><h2>Change</h2></div>
+      <div class="sechead mgsh"><h2>Change</h2><div class="shr" id="chPick"></div></div>
       <div id="logWarnNw"></div>
       <div class="card nwp nwd" id="nwDays"></div>
       <div class="card dl" id="nwDayList"></div>
@@ -2440,7 +2441,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-10a';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-10b';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3655,6 +3656,7 @@ function renderBucketList(bk, sel){
 // Net worth page (opens from the chevron on Overview): what it is made of, what
 // moved it over a period, highs and lows, then the monthly market gains
 let nwMoveR = load('inv.nwMove') || '3M';
+let chB = load('inv.chB') || 'all', chMenu = false;   // Change › Investments: ticked buckets, or 'all' for the whole investments line
 let nwDaySel = null, nwDayAll = false, nwPer = load('inv.nwPer') || 'D', nwChgV = load('inv.nwChgV') || 'both';   // nwChgV: what the change shows — net worth, investments, or both side by side   // Day by day: the tapped bar, and whether the list shows every day
 const NW_MOVE = ['1M','3M','YTD','1Y','All'];
 function renderTrends(daily, monthly){
@@ -3716,13 +3718,26 @@ function renderTrends(daily, monthly){
       investment: lastP.investment!=null && totA && totA.dayChange!=null ? lastP.investment + totA.dayChange : null });
   const ends = []; mkt.forEach(p=>{ const k = perKey(p); if (ends.length && ends[ends.length-1].k===k) ends[ends.length-1] = { k, p }; else ends.push({ k, p }); });
   // the first period counts from the first logged day (so July shows, from 3 Jul)
-  const days = ends.map((e,i)=>({ e, q: i ? ends[i-1].p : mkt[0] })).filter(o=>o.e.p!==o.q).map(({e,q})=>{ const p = e.p, chg = p.netWorth - q.netWorth;
+  let days = ends.map((e,i)=>({ e, q: i ? ends[i-1].p : mkt[0] })).filter(o=>o.e.p!==o.q).map(({e,q})=>{ const p = e.p, chg = p.netWorth - q.netWorth;
     const inv = p.investment!=null && q.investment!=null ? p.investment - q.investment : null;
     return { date:e.k, last:p.date, live:!!p.live, nw:p.netWorth, chg, pct: q.netWorth ? chg/q.netWorth : null, inv, invPct: inv!=null && q.investment ? inv/q.investment : null, cash: inv==null ? null : chg - inv }; });
   // money put in that period: the pay-in logged on each day (F), so Investments splits into market + money added
   const payOn = new Map(all.map(p=>[p.date, Number(p.payInOut)||0]));
   days.forEach((y,i)=>{ const from = i ? days[i-1].last : mkt[0].date; let a = 0; payOn.forEach((v,d)=>{ if (d > from && d <= y.last) a += v; }); if (y.live) a = 0;   // today so far is the market move only; today's buys land in tomorrow's log
     y.add = a; y.mkt = y.inv!=null ? y.inv - a : null; });
+  // Buckets (Investments only): the nightly Bucket History log (from 22 Oct 2026) summed over the
+  // ticked buckets — value change, money added = invested change − realised, market = the rest
+  const bd = (d && Array.isArray(d.bucketDaily)) ? d.bucketDaily : [], bkAll = [...new Set(bd.map(r=>r.bucket))];
+  const bSel = nwChgV==='inv' && chB!=='all' ? chB.filter(b=>bkAll.includes(b)) : [];
+  if (bSel.length){
+    const byD = new Map(); bd.forEach(r=>{ if (!bSel.includes(r.bucket)) return; const o = byD.get(r.date) || { date:r.date, value:0, invested:0, realised:0 };
+      o.value += r.value||0; o.invested += r.invested||0; o.realised += r.realised||0; byD.set(r.date, o); });
+    const bp = [...byD.values()].sort((a,b)=>a.date<b.date?-1:1), be = [];
+    bp.forEach((p,i)=>{ const k = perKey(p), rl = i ? p.realised : 0; if (be.length && be[be.length-1].k===k){ be[be.length-1].p = p; be[be.length-1].rl += rl; } else be.push({ k, p, rl }); });
+    days = be.map((e,i)=>({ e, q: i ? be[i-1].p : bp[0] })).filter(o=>o.e.p!==o.q).map(({e,q})=>{ const p = e.p, inv = p.value - q.value, add = (p.invested - q.invested) - e.rl;
+      return { date:e.k, last:p.date, live:false, nw:p.value, chg:inv, pct:null, inv, invPct: q.value ? inv/q.value : null, cash:null, add, mkt: inv - add }; });
+  }
+  chPicker(daily, monthly, bkAll);
   const dd = s => new Date(s+'T00:00:00');
   const dLab = x => { if (nwPer==='D') return dd(x.date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
     if (nwPer==='M') return dd(x.date+'-01').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
@@ -3762,7 +3777,8 @@ function renderTrends(daily, monthly){
         <div class="v num money ${cls(val(x))}">${fINRs(val(x))}${vpct(x)!=null?` <small>(${fPct(Math.abs(vpct(x)),false)})</small>`:''}</div></div>
         <div class="s num money">${other(x).join('<br>')}</div></div>
       ${dBars(win)}
-      <div class="dax"><span>${esc(axLab(win[0]))}</span><span>Best ${esc(axLab(best))} · Worst ${esc(axLab(worst))}</span><span>${esc(axLab(win[win.length-1]))}</span></div>`;
+      <div class="dax"><span>${esc(axLab(win[0]))}</span><span>Best ${esc(axLab(best))} · Worst ${esc(axLab(worst))}</span><span>${esc(axLab(win[win.length-1]))}</span></div>`
+      + (bSel.length ? `<div class="chbn">${esc(bSel.join(' + '))} · logged nightly from 22 Oct; today's move shows tomorrow</div>` : '');
     // every period, newest first; tap one to see it above, long-press to add several up
     const src = (nwPer==='D' ? win : days).slice().reverse(), shown = nwDayAll ? src : src.slice(0,7);
     window.__nwRows = new Map(days.map(y=>[y.date, y]));
@@ -3980,6 +3996,28 @@ function mgPicker(monthly, bm){
       if (i>=0){ if (cur.length===1) return; cur.splice(i,1); } else cur.push(v);   // keep at least one ticked
       mgB = cur; }
     save('inv.mgB', mgB); mgSel = null; re(); });
+}
+function chPicker(daily, monthly, bks){
+  const el = $('#chPick'); if (!el) return;
+  if (nwChgV!=='inv' || !bks.length){ el.innerHTML = ''; return; }
+  const sel = chB==='all' ? [] : chB.filter(b=>bks.includes(b));
+  const lbl = chB==='all' || !sel.length ? 'Total' : sel.length===bks.length ? 'All buckets' : sel.length===1 ? sel[0] : sel.length + ' buckets';
+  const CK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  el.innerHTML = `<button class="mgpk" data-chpk aria-haspopup="menu" aria-expanded="${chMenu}">${esc(lbl)}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>`
+    + (chMenu ? `<div class="menu" role="menu">${bks.map(b=>`<button role="menuitemcheckbox" aria-checked="${sel.includes(b)}" data-chb="${esc(b)}">${esc(b)}<i>${sel.includes(b)?CK:''}</i></button>`).join('')}
+        <button role="menuitemcheckbox" aria-checked="${chB==='all'}" data-chb="__all">Total<i>${chB==='all'?CK:''}</i></button>
+        <div class="mgnote">Buckets start 22 Oct 2026. Total also has NPS.</div></div>` : '');
+  const re = () => renderTrends(daily, monthly);
+  $('[data-chpk]', el).onclick = e=>{ e.stopPropagation(); chMenu = !chMenu; re();
+    if (chMenu) setTimeout(()=>document.addEventListener('click', function off(ev){
+      if (ev.target.closest && ev.target.closest('#chPick .menu')) return;
+      document.removeEventListener('click', off, true); if (chMenu){ ev.stopPropagation(); ev.preventDefault(); chMenu = false; re(); } }, true), 0); };
+  $$('[data-chb]', el).forEach(b=>b.onclick = e=>{ e.stopPropagation(); const v = b.dataset.chb;
+    if (v==='__all') chB = 'all';
+    else { const cur = chB==='all' ? [] : sel.slice(), i = cur.indexOf(v);
+      if (i>=0){ if (cur.length===1) return; cur.splice(i,1); } else cur.push(v);   // keep at least one ticked
+      chB = cur; }
+    save('inv.chB', chB); nwDaySel = null; dselExit(); re(); });
 }
 function nwMonthlyCard(monthly){
   const el = $('#nwMonthly'); if (!el) return;

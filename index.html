@@ -2440,7 +2440,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-09c';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-09d';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -4972,7 +4972,7 @@ function renderPage(){
   const p = pageStack[pageStack.length-1]; if(!p || (!D && !/^(profile|recurring|recform|xsearch)$/.test(p.kind))) return;
   $('#page').classList.remove('kbpad');
   const prev = pageStack[pageStack.length-2];
-  const back = prev ? pageTitle(prev) : (TITLES[activeView] || 'Back');
+  const back = prev ? pageTitle(prev) : (TITLES[activeView==='spend' && spSec==='accounts' ? 'acc' : activeView] || 'Back');   // the Accounts tab is Spend's accounts section underneath
   const body = p.kind==='league' ? leagueBody(p) : p.kind==='platlist' ? '<div class="card tight" id="pgPlatList"></div>' : p.kind==='bklist' ? '<div class="card tight" id="pgBkList"></div>' : p.kind==='holding' ? holdingBody(p.ticker) : p.kind==='dividends' ? dividendsBody(p.ticker, p.platform)
     : p.kind==='expcat' ? expcatBody(p) : p.kind==='inccat' ? inccatBody(p) : p.kind==='budgets' ? budgetsBody(p) : p.kind==='acct' ? accBody(p) : p.kind==='zakat' || p.kind==='interest' ? ziPageBody(p) : p.kind==='intq' ? ziQBody(p) : p.kind==='constr' ? constrBody(p) : p.kind==='epf' ? epfBody(p) : p.kind==='nps' ? npsBody(p) : p.kind==='tax' ? taxBody(p) : p.kind==='books' ? booksBody() : p.kind==='bklog' ? bkLogBody()
     : p.kind==='accform' ? accFormBody(p) : p.kind==='profile' ? profileBody() : p.kind==='defaults' ? defaultsBody() : p.kind==='recurring' ? recurringBody()
@@ -5885,9 +5885,9 @@ function drawBudgetChart(){
     const upTo = D0.isNow ? new Date().getDate() : dim;
     const cur = cumOf(xEntries(ym), dim).slice(0, upTo), prev = pym >= d.entriesFrom ? cumOf(xEntries(pym), dimP) : null;
     const cMax = cur.length ? cur[cur.length-1] : 0, pMax = prev ? prev[prev.length-1] : 0;
-    // a far bigger last month (a one-off) would flatten this month too: it then runs off the top with a label
-    const capP = pMax > Math.max(cMax, D0.bud)*2, base = capP ? Math.max(cMax, D0.bud) : Math.max(pMax, D0.bud), cap = cMax > base*2;
-    const mx = cap || capP ? base*1.35 : Math.max(cMax, base)*1.1;
+    // the graph always runs to twice the budget, so the dashed budget line sits at mid-height;
+    // a month (this one or last) that goes past that runs off the top with its amount as a label
+    const mx = D0.bud*2, cap = cMax > mx, capP = pMax > mx;
     const x = i => dim>1 ? 4 + i/(dim-1)*(W-8) : W/2, y = v => Math.max(-3, Hp - v/mx*(Hp-4));
     const L = a => a.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(v).toFixed(1)).join('');
     const lx = x(Math.max(0,cur.length-1));

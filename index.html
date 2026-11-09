@@ -2461,7 +2461,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11l';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11m';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -2756,7 +2756,7 @@ function renderHome(d){
   const tot = (nw.assets||[]).find(a=>a.isTotal) || {};
   $('#kpis').innerHTML = [
     ['Invested', tipS(tot.invested, fCompact(tot.invested)), ''],
-    ['Returns', tipS(tot.currReturns, fCompact(tot.currReturns), true), cls(tot.currReturns)],
+    ['P&L', tipS(tot.currReturns, fCompact(tot.currReturns), true), cls(tot.currReturns)],
     ['XIRR', fPct(tot.xirr,false), '']
   ].map(([k,v,c])=>k==='XIRR' ? `<div><button class="kxirr" data-league aria-label="Open the XIRR league"><div class="k">${k}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div><div class="v num money ${c}">${v}</div></button></div>` : `<div><div class="k">${k}</div><div class="v num money ${c}">${v}</div></div>`).join('');
   { const kx = $('#kpis [data-league]'); if (kx) kx.onclick = () => pushPage({ kind:'league', tab:'assets' }); }
@@ -2775,13 +2775,13 @@ function renderHome(d){
     const sum = rows.reduce((t,a)=>t+Math.max(0,a.value||0),0) || 1;
     aEl.className = 'wgrid';
     aEl.innerHTML = rows.map(a=>{ const sh = Math.max(0,a.value||0)/sum;
-      return `<div class="wcard${aTap(a)}"><div class="hd">${mark(a.name)}<div class="n">${esc(a.name)}</div></div><div class="v num money">₹${inr.format(Math.round(a.value))}</div>
+      return `<div class="wcard${aTap(a)}"><div class="hd">${mark(a.name)}<div class="n">${esc(assetLbl(a.name))}</div></div><div class="v num money">₹${inr.format(Math.round(a.value))}</div>
         <div class="sb"><i style="width:${(sh*100).toFixed(1)}%;background:${TINT_INK[iconFor(a.name)[1]] || 'var(--ink-3)'}"></i></div><div class="ft">${aPill(a)}<span class="num">${Math.round(sh*100)}%</span></div></div>`; }).join('');
   } else { aEl.className = 'card tight';
   aEl.innerHTML = rows.map(a=>`
     <div class="row platrow${/^EPF$/i.test(a.name) && epfD() ? ' tap" data-epf="1' : /^NPS$/i.test(a.name) && npsD() ? ' tap" data-nps="1' : ''}"${assetCatFor(a.name, d.holdings)?` data-acat="${esc(assetCatFor(a.name, d.holdings))}"`:''}>
       ${mark(a.name)}
-      <div class="l"><div class="n">${esc(a.name)}</div></div>
+      <div class="l"><div class="n">${esc(assetLbl(a.name))}</div></div>
       <div class="r"><div class="v num money">${fINR(a.value)}</div>${a.dayChange!=null
         ? `<div class="s"><span class="pill sm dpill ${cls(a.dayChange)} num money">${fChg(a.dayChange)}${a.dayChangePct!=null ? ' · ' + fPct(Math.abs(a.dayChangePct),false) : ''}</span></div>` : ''}</div>
     </div>`).join('') +
@@ -3257,7 +3257,9 @@ function txnRow(t, showDate, noPlatform){
    row is in the currency the sheet holds it in — dollars for US stocks — and
    the rupee conversion is used only to rank a mixed list and total it. */
 const CAT_ORDER = ['US Stocks','Stocks','Gold/Silver','Mutual Fund','Crypto'];
-const CAT_LABEL = { 'Stocks':'Indian', 'Gold/Silver':'Gold', 'Mutual Fund':'Mutual Fund' };
+const CAT_LABEL = { 'Stocks':'Indian stocks', 'US Stocks':'US stocks', 'Gold/Silver':'Gold/Silver', 'Mutual Fund':'Mutual funds' };
+// the Overview asset rows come named from the Net Worth sheet; show them with the same names
+const ASSET_LBL = { 'Stocks':'Indian stocks', 'US Stocks':'US stocks', 'Mutual Funds':'Mutual funds', 'Mutual Fund':'Mutual funds', 'Gold':'Gold/Silver' }, assetLbl = n => ASSET_LBL[n] || n;
 let assetCat = 'US Stocks';   // the filter the tab opens on
 // Net Worth row name → holdings category, only when that category has holdings
 function assetCatFor(name, holdings){
@@ -3818,7 +3820,7 @@ function renderTrends(daily, monthly){
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 20V10M12 20V4M18 20v-7"/></svg>'}</button>
       <div class="cuh"><div class="cubig num money ${cls(net)}">${fChg(net)}</div><div class="cucap">in the last ${win.length} day${win.length===1?'':'s'}${win[win.length-1].live ? ', today so far' : ''}</div></div>
       <div class="cusp"><i style="flex:${Math.abs(sM)};background:var(--${sM<0?'down':'up'})"></i><i style="flex:${Math.abs(sA)};background:var(--blue)"></i></div>
-      <div class="culg cul2"><span>Market <b class="num money ${cls(sM)}">${fChg(sM)}</b></span><span>You put in <b class="num money ${cls(sA)}">${fChg(sA)}</b></span></div>
+      <div class="culg cul2"><span>Market <b class="num money ${cls(sM)}">${fChg(sM)}</b></span><span>Added <b class="num money ${cls(sA)}">${fChg(sA)}</b></span></div>
       ${chView==='bars' ? `<div class="cubw" id="nwBars">${dBars(win).replace('data-dbars','data-cbars')}<div class="tip"></div></div>
       <div class="dax"><span>${esc(axLab(win[0]))}</span><span>${esc(axLab(win[win.length-1]))}</span></div>` : `<div class="chart tall cuch" id="nwCum"><svg></svg><div class="tip"></div></div>
       <div class="dax"><span>${esc(axLab(win[0]))}</span><span class="culk"><i></i>Total <i class="dash"></i>Market</span><span>${esc(axLab(win[win.length-1]))}</span></div>`}
@@ -3833,7 +3835,7 @@ function renderTrends(daily, monthly){
         <div><span><i class="dk iv"></i>Investments</span><b class="num money ${cls(sInv)}">${fChg(sInv)}</b></div><div><span><i class="dk cs"></i>Cash</span><b class="num money ${cls(sCash)}">${fChg(sCash)}</b></div></div>` : `
       ${V==='inv' ? (()=>{ const sM = win.reduce((a,y)=>a+(y.mkt ?? 0),0), sA = win.reduce((a,y)=>a+(y.add ?? 0),0);
         return `<div class="spstats lcr dsum"><div><span>${win.length} ${per[3]}</span><b class="num money ${cls(net)}">${fChg(net)}</b></div>
-        <div><span>Market</span><b class="num money ${cls(sM)}">${fChg(sM)}</b></div><div><span>Money added</span><b class="num money ${cls(sA)}">${fChg(sA)}</b></div></div>`; })() : `
+        <div><span>Market</span><b class="num money ${cls(sM)}">${fChg(sM)}</b></div><div><span>Added</span><b class="num money ${cls(sA)}">${fChg(sA)}</b></div></div>`; })() : `
       <div class="spstats lcr dsum"><div><span>${win.length} ${per[3]}</span><b class="num money ${cls(net)}">${fChg(net)}</b></div>
         <div><span>Up</span><b class="num up">${ups}</b></div><div><span>Down</span><b class="num down">${dns}</b></div></div>`}`) + `
       <div class="dsel"><div><div class="k">${esc(dLab(x))}${sofar}</div>
@@ -3845,7 +3847,7 @@ function renderTrends(daily, monthly){
     // every period, newest first; tap one to see it above, long-press to add several up
     const src = (nwPer==='D' ? win : days).slice().reverse(), shown = nwDayAll ? src : src.slice(0,7);
     window.__nwRows = new Map(days.map(y=>[y.date, y]));
-    $('#nwDayList').innerHTML = `<div class="dlh"><span>${nwPer==='D'?'Day':nwPer==='W'?'Week':'Month'}</span><span>${V==='inv'?'Investments':'Net worth'}</span></div>` + shown.map(y=>{ const t = other(y).join(' · ');
+    $('#nwDayList').innerHTML = `<div class="dlh"><span>${nwPer==='D'?'Day':nwPer==='W'?'Week':'Month'}</span><span>Change</span></div>` + shown.map(y=>{ const t = other(y).join(' · ');
       return `<div class="r dr${y.date===nwDaySel?' cur':''}${DSEL && DSEL.has(y.date)?' picked':''}" data-dk="${esc(y.date)}"><div class="a">${esc(dLab(y))}${y.live?' <span class="faint">so far</span>':''}<small class="num money">${fINR(y.nw)}</small></div>
         <div class="z num money ${cls(val(y))}">${fINRs(val(y))}${vpct(y)!=null?` <span class="p">${fPct(Math.abs(vpct(y)),false)}</span>`:''}${t?`<small>${t}</small>`:''}</div></div>`; }).join('')
       + (src.length > 7 ? `<button class="more" data-dall>${nwDayAll ? 'Show fewer' : 'Show all ' + src.length + ' ' + per[3]}</button>` : '');
@@ -4022,13 +4024,13 @@ function tqWire(){
 const tqChev = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
 function tqTopHtml(txns){
   const f = tq.f, X = '<span aria-hidden="true">✕</span>', lbl = Object.fromEntries(TQ_FIELDS.map(x=>[x[0],x[1]]));
-  const chips = tq.toks.map((k,i)=>`<button data-tqx="t${i}" aria-label="Remove ${esc(k.v)}">${esc(k.f==='*' ? '“'+k.v+'”' : k.v)}${X}</button>`)
+  const chips = tq.toks.map((k,i)=>`<button data-tqx="t${i}" aria-label="Remove ${esc(k.v)}">${esc(k.f==='*' ? '“'+k.v+'”' : k.f==='cat' ? CAT_LABEL[k.v]||k.v : k.v)}${X}</button>`)
     .concat(f.ord!=='all' ? [`<button data-tqx="ord">${esc(f.ord)}${X}</button>`] : [])
-    .concat(['pl','cat','bk'].flatMap(k=>f[k].map(v=>`<button data-tqx="${k}:${esc(v)}">${esc(v)}${X}</button>`)))
+    .concat(['pl','cat','bk'].flatMap(k=>f[k].map(v=>`<button data-tqx="${k}:${esc(v)}">${esc(k==='cat' ? CAT_LABEL[v]||v : v)}${X}</button>`)))
     .concat(f.per!=='all' ? [`<button data-tqx="per">${esc(f.per==='custom' ? [f.from&&fDate(f.from), f.to&&fDate(f.to)].filter(Boolean).join(' – ') || 'Custom' : TQ_PER.find(p=>p[0]===f.per)[1])}${X}</button>`] : [])
     .concat(f.min!=='' || f.max!=='' ? [`<button data-tqx="amt">${esc(f.min!=='' && f.max!=='' ? '₹'+f.min+' – ₹'+f.max : f.min!=='' ? '≥ ₹'+f.min : '≤ ₹'+f.max)}${X}</button>`] : []);
   const uniq = g => [...new Set(txns.map(g).filter(Boolean))].sort();
-  const pick = (k, list) => `<div class="tqc">${list.map(v=>`<button data-tqp="${k}" data-v="${esc(v)}" class="${f[k].includes(v)?'on':''}">${esc(v)}</button>`).join('')}</div>`;
+  const pick = (k, list) => `<div class="tqc">${list.map(v=>`<button data-tqp="${k}" data-v="${esc(v)}" class="${f[k].includes(v)?'on':''}">${esc(k==='cat' ? CAT_LABEL[v]||v : v)}</button>`).join('')}</div>`;
   const row = (l, right) => `<div class="r"><div class="lb">${l}</div>${right}</div>`;
   const opt = (v, l, cur) => `<option value="${esc(v)}" ${v===cur?'selected':''}>${esc(l)}</option>`;
   const dt = (k, l) => row(l, `<span class="vl">${f[k] ? esc(fDate(f[k])) : 'Any'}${tqChev}</span><input class="ovl" type="date" data-tqd="${k}" value="${esc(f[k]||'')}">`);
@@ -4055,7 +4057,7 @@ function renderTxns(txns){
   if (typing){
     const S = tqSuggest(txns, tq.q), lbl = Object.fromEntries(TQ_FIELDS.map(x=>[x[0],x[1]]));
     $('#txnList').innerHTML = loading + `<div class="card tight xs-sug">${S.map((x,i)=>`<button class="row" data-sug="${i}"><span class="xs-si">${SRCH_ICON}</span>
-        <div class="l"><div class="n">${esc(x.v)}</div><div class="m">${lbl[x.f]} · ${x.n} ${x.n===1?'trade':'trades'}</div></div></button>`).join('')}
+        <div class="l"><div class="n">${esc(x.f==='cat' ? CAT_LABEL[x.v]||x.v : x.v)}</div><div class="m">${lbl[x.f]} · ${x.n} ${x.n===1?'trade':'trades'}</div></div></button>`).join('')}
       <button class="row" data-sug="*"><span class="xs-si">${SRCH_ICON}</span><div class="l"><div class="n">Search “${esc(tq.q.trim())}” everywhere</div></div></button></div>`;
     $$('#txnList [data-sug]').forEach(b=>b.onclick=()=>{ const k = b.dataset.sug, x = k==='*' ? { f:'*', v:tq.q.trim() } : { f:S[Number(k)].f, v:S[Number(k)].v };
       tq.toks.push(x); tq.q = ''; const inp = $('#tqBox input'); inp.value = ''; $('#tqBox').classList.remove('has'); renderTxns(D.data.transactions); });
@@ -7034,7 +7036,7 @@ function npsBody(p){
       ${N.dayChange!=null ? `<div class="pg-sub num money"><span class="grp">${arrowAmt(N.dayChange, fINR)}${N.dayChangePct!=null ? ` <span class="${cls(N.dayChangePct)}">(${fPct(Math.abs(N.dayChangePct),false)})</span>` : ''} <span class="k">today</span></span></div>` : ''}
       ${c.months.length > 1 ? monthLineChart(c.months, c.vals, c.months[c.months.length-1], null, 0, true) : ''}
       <div class="spstats lcr npstats"><div><span>Invested</span>${kTip(c.invested)}</b></div>
-        <div><span>Returns</span>${kTip(c.pnl, cls(c.pnl), c.pnl<0?'−':c.pnl>0?'+':'')}${pc!=null ? ` <em class="pct">${fPct(pc)}</em>` : ''}</b></div>
+        <div><span>P&amp;L</span>${kTip(c.pnl, cls(c.pnl), c.pnl<0?'−':c.pnl>0?'+':'')}${pc!=null ? ` <em class="pct">${fPct(pc)}</em>` : ''}</b></div>
         <div><span>Charges</span>${kTip(c.charges)}</b></div></div>
     </div>`;
   // the three schemes: a strip of their shares, then units × today's NAV

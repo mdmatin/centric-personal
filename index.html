@@ -170,6 +170,7 @@ main{padding:0}
 .pill.up{background:var(--up-bg);color:var(--up)}
 .pill.down{background:var(--down-bg);color:var(--down)}
 .pill.sm{font-size:12px;padding:2px 8px}
+.pill .arrow{font-size:.78em;margin-right:1px;color:inherit}
 .hero .today{font-size:14px;color:var(--ink-2);letter-spacing:-.224px}
 
 .kpirow{display:flex;margin-top:18px;padding-top:16px;border-top:1px solid var(--hairline)}
@@ -2049,7 +2050,7 @@ html[data-ui=dial]:not(.rpeek),html[data-ui=dial]:not(.rpeek) body{background:#c
 .wcard .sb{height:4px;border-radius:2px;background:var(--sunken);margin:10px 0 8px;overflow:hidden}.wcard .sb i{display:block;height:100%}
 .wcard .ft{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--ink-3)}
 .wcard svg.spk{display:block;width:100%;height:34px;margin:8px 0 6px}
-/* Overview: market strip under Net worth (as in broker apps): name ↗, level, change | ±% */
+/* Overview: market strip under Net worth (as in broker apps): name ↗, level, change | ▲% */
 .mkstrip{display:flex;gap:10px;overflow-x:auto;padding:0 16px 2px;margin:0 0 12px;scroll-snap-type:x mandatory;scroll-padding:0 16px;scrollbar-width:none}
 .mkstrip::-webkit-scrollbar{display:none}.mkstrip:empty{display:none}
 .mki{flex:0 0 156px;min-width:0;scroll-snap-align:start;background:var(--canvas);border:1px solid var(--card-edge);border-radius:var(--r-mid);padding:10px 12px}
@@ -2466,7 +2467,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11q';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11s';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -2744,7 +2745,7 @@ function homeMarkets(d){
   const ar = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>';
   el.innerHTML = M.map(m=>{ const p = m.chgPct||0, c = m.chg!=null ? m.chg : m.value * p / (1 + p), up = p >= 0;
     return `<div class="mki"><div class="n"><span>${esc(m.name)}</span>${ar}</div><div class="v num">${m.ccy==='INR' ? '₹' : ''}${f2(m.value)}</div>${mkSpark(m.spark, up)}
-      <div class="c num ${up?'up':'down'}">${up?'+':'−'}${f2(Math.abs(c))}<span class="sp">|</span>${up?'+':'−'}${Math.abs(p*100).toFixed(2)}%</div></div>`; }).join('');
+      <div class="c num ${up?'up':'down'}">${up?'+':'−'}${f2(Math.abs(c))}<span class="sp">|</span>${up?'▲':'▼'}${Math.abs(p*100).toFixed(2)}%</div></div>`; }).join('');
 }
 function renderHome(d){
   const nw = d.netWorth, h = nw.head||{}, cash = liveCash();
@@ -2753,7 +2754,7 @@ function renderHome(d){
   $('#nw').innerHTML = bigAmt(fINR2(nwVal));
   milestone(nwVal);
   paintBooks();
-  $('#nwSub').innerHTML = `<span class="pill ${cls(h.netWorthDay)} num money">${fChg(h.netWorthDay)} · ${fPct(Math.abs(h.netWorthDayPct??0),false)}</span> <span class="today">today</span>`;
+  $('#nwSub').innerHTML = `<span class="pill ${cls(h.netWorthDay)} num money">${fChg(h.netWorthDay)} · ${upDn(h.netWorthDayPct??0, h.netWorthDay)}${fPct(Math.abs(h.netWorthDayPct??0),false)}</span> <span class="today">today</span>`;
 
   // hero chart + ranges
   $('#homeRanges').innerHTML = Object.keys(RANGES).map(r=>`<button class="${r===range?'on':''}" data-r="${r}">${r}</button>`).join('');
@@ -3509,8 +3510,8 @@ function renderAssets(holdings, usdInr){
     // switches the list to detailed rows with the amounts, and back
     const dpct = h.day==null ? null : (inInr(h) - h.day) ? h.day / (inInr(h) - h.day) : null;
     const left = day==null ? m2(h.ltp)
-      : hDetail ? `<span class="${cls(day)}">${day<0?'−':day>0?'+':''}${m(Math.round(Math.abs(day))).replace(/\.0+(?!\d)/,'')}</span> today`   // signed, whole units, like every other today figure
-      : dpct==null ? m2(h.ltp) : `<span class="${cls(dpct)}">${dpct<0?'−':dpct>0?'+':''}${fPct(Math.abs(dpct),false)}</span> today`;
+      : hDetail ? `<span class="${cls(day)}">${day<0?'−':day>0?'+':''}${m(Math.round(Math.abs(day))).replace(/\.0+(?!\d)/,'')}${dpct!=null ? ' · ' + upDn(dpct, day) + fPct(Math.abs(dpct),false) : ''}</span> today`   // amount signed, today's % arrowed
+      : dpct==null ? m2(h.ltp) : `<span class="${cls(dpct)}">${upDn(dpct)}${fPct(Math.abs(dpct),false)}</span> today`;
     const right = hDetail ? `${ret>=0?'+':'−'}${m(Math.abs(ret))}${p==null?'':` · ${fPct(Math.abs(p),false)}`}`
       : p==null ? `${ret>=0?'+':'−'}${m(Math.abs(ret))}` : `${p>=0?'+':'−'}${fPct(Math.abs(p),false)}`;
     return `<div class="hcard hc1 tap" data-t="${esc(h.ticker)}" data-q="${esc(qWords(h.ticker, h.category, CAT_LABEL[h.category], h.platform))}">
@@ -3708,7 +3709,7 @@ function renderTrends(daily, monthly){
   const invV = h.netWorth!=null && h.runningBalance!=null ? h.netWorth - h.runningBalance : h.investmentValue;
   const total = (invV||0) + cashV, pc = v => total ? Math.round(v/total*100)+'%' : '';
   $('#nwComp').innerHTML = `<div class="k">Net worth</div><div class="pg-big num money">${bigAmt(fINR2(total))}</div>
-    <div class="nwsub">${h.netWorthDay!=null ? `<span class="pill ${cls(h.netWorthDay)} num money">${fChg(h.netWorthDay)} · ${fPct(Math.abs(h.netWorthDayPct??0),false)}</span> <span class="today">today</span>` : ''}</div>
+    <div class="nwsub">${h.netWorthDay!=null ? `<span class="pill ${cls(h.netWorthDay)} num money">${fChg(h.netWorthDay)} · ${upDn(h.netWorthDayPct??0, h.netWorthDay)}${fPct(Math.abs(h.netWorthDayPct??0),false)}</span> <span class="today">today</span>` : ''}</div>
     <div class="nwp-bar"><i style="flex:${Math.max(invV,0)};background:var(--blue)"></i><i style="flex:${Math.max(cashV,0)};background:var(--cashc)"></i></div>
     <div class="spstats lcr nwsplit2"><div><span><i style="background:var(--blue)"></i>Investments</span><b class="num money">${fINR(invV)} <em class="pct">${pc(invV)}</em></b></div>
       <div><span><i style="background:var(--cashc)"></i>Cash</span><b class="num money">${fINR(cashV)} <em class="pct">${pc(cashV)}</em></b></div></div>`;   // the same metric row as other pages; the dots key the bar
@@ -5145,7 +5146,9 @@ const priceMoney = usdRow => v => v==null ? '—'
   : (v<0?'−':'') + (usdRow ? usd2.format(Math.abs(v)) : '₹' + inrP.format(Math.abs(v)));
 const qtyFmt = n => n==null ? '—' : n>=1000 ? inr.format(Math.round(n)) : String(+Number(n).toFixed(4));
 // today's change: the same pill as Overview — signed amount · %
-const dayPill = (v, m, p) => v==null ? '' : `<span class="pill sm dpill ${cls(v)} num money">${v<0?'−':v>0?'+':''}${m(Math.round(Math.abs(v))).replace(/\.0+(?!\d)/,'')}${p!=null ? ' · ' + fPct(Math.abs(p),false) : ''}</span>`;
+// an arrow means "the market moved today": only today's % carries one; amounts keep + / −
+const upDn = (p, ref) => `<span class="arrow">${(ref ?? p) < 0 ? '▼' : '▲'}</span>`;
+const dayPill = (v, m, p) => v==null ? '' : `<span class="pill sm dpill ${cls(v)} num money">${v<0?'−':v>0?'+':''}${m(Math.round(Math.abs(v))).replace(/\.0+(?!\d)/,'')}${p!=null ? ' · ' + upDn(p, v) + fPct(Math.abs(p),false) : ''}</span>`;
 const arrowAmt = (v, m) => v==null ? '—'
   : `<span class="${cls(v)}">${v>0?'+':v<0?'−':''}${m(Math.round(Math.abs(v))).replace(/\.0+(?!\d)/,'')}</span>`;   // change: whole units
 

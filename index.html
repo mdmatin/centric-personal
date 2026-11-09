@@ -2455,7 +2455,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11g';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11h';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3758,9 +3758,13 @@ function renderTrends(daily, monthly){
   const bd = (BD && Array.isArray(BD.rows)) ? BD.rows : [], bkAll = [...new Set(bd.map(r=>r.bucket))];
   const bSel = nwChgV==='inv' && chB!=='all' ? chB.filter(b=>bkAll.includes(b)) : [];
   if (bSel.length){
-    const byD = new Map(); bd.forEach(r=>{ if (!bSel.includes(r.bucket)) return; const o = byD.get(r.date) || { date:r.date, value:0, invested:0, realised:0 };
-      o.value += r.value||0; o.invested += r.invested||0; o.realised += r.realised||0; byD.set(r.date, o); });
+    // a row dated D is written at 3:15 AM on D: it holds the close of D−1 (and the trades dated before D),
+    // so it belongs to the day before, like the Daily Change rows above. Realised stays on its trade date:
+    // it lands on that day, or the next logged one if that day has no row.
+    const byD = new Map(), rls = []; bd.forEach(r=>{ if (!bSel.includes(r.bucket)) return; const k = prevDay(r.date), o = byD.get(k) || { date:k, value:0, invested:0, realised:0 };
+      o.value += r.value||0; o.invested += r.invested||0; byD.set(k, o); if (r.realised) rls.push([r.date, r.realised]); });
     const bp = [...byD.values()].sort((a,b)=>a.date<b.date?-1:1), be = [];
+    rls.forEach(([d,v])=>{ const p = bp.find(x=>x.date >= d); if (p) p.realised += v; });
     bp.forEach((p,i)=>{ const k = perKey(p), rl = i ? p.realised : 0; if (be.length && be[be.length-1].k===k){ be[be.length-1].p = p; be[be.length-1].rl += rl; } else be.push({ k, p, rl }); });
     days = be.map((e,i)=>({ e, q: i ? be[i-1].p : bp[0] })).filter(o=>o.e.p!==o.q).map(({e,q})=>{ const p = e.p, inv = p.value - q.value, add = (p.invested - q.invested) - e.rl;
       return { date:e.k, last:p.date, live:false, nw:p.value, chg:inv, pct:null, inv, invPct: q.value ? inv/q.value : null, cash:null, add, mkt: inv - add }; });

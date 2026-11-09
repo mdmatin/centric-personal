@@ -2467,7 +2467,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11t';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11u';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -5941,7 +5941,9 @@ function xCats(){
   (d.entries||[]).forEach(e=>{ if (e.category && names.indexOf(e.category)<0) names.push(e.category); });
   return names;
 }
-const xSubs = cat => (((xd()||{}).categories||[]).find(c=>c.name===cat)||{}).subs || [];
+// a category's subcategories, as named on Money › Expense/Income Categories; two spellings that differ
+// only in capitals show once (the first listed), so a stray "US stocks" can't repeat "US Stocks"
+const xSubs = cat => { const seen = new Set(); return ((((xd()||{}).categories||[]).find(c=>c.name===cat)||{}).subs || []).filter(s=>{ const k = String(s).trim().toLowerCase(); return !seen.has(k) && seen.add(k); }); };
 // spend per category for a month — from the entries when the month is inside
 // the window the app holds (so edits show at once), else from the server totals
 function xMonth(ym){
@@ -8406,7 +8408,7 @@ function xCatsByUse(){ return xCats(); }
 const xIsRefund = () => xMode==='income' && xType===XREFUND;
 const xIsLiq = () => xMode==='income' && xType===XLIQ;
 const invCat = () => xCats().find(isInvest) || 'Investment';
-const liqSubs = () => { const L = xSubs(invCat()); return L.length ? L : ['Stocks','Mutual funds','Gold','Crypto','US Stocks','NPS']; };
+const liqSubs = () => { const L = xSubs(invCat()); return L.length ? L : ['Stocks','Mutual Funds','Gold','Crypto','US Stocks','NPS']; };
 // the Kite wallet on Net Worth, when it holds something a liquidation could come out of
 const kiteWallet = () => { const w = ((D && D.data && D.data.netWorth && D.data.netWorth.wallets) || []).find(x=>x.key==='kite'); return w && !w.formula && w.amount > 0 ? w : null; };
 const xTitle = () => (xEditing ? 'Edit ' : 'New ') + (xMode==='expense' ? 'expense' : xMode==='transfer' ? 'transfer' : 'income');

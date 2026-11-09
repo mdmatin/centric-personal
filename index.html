@@ -338,6 +338,16 @@ main{padding:0}
 .dline .vl{stroke:var(--hairline);stroke-width:1;stroke-dasharray:3 3}
 .dline .dot{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;border:2px solid var(--card,#fff);box-shadow:0 0 0 1px rgba(0,0,0,.08)}
 .dline .dot.up{background:var(--up)}.dline .dot.down{background:var(--down)}
+.dbars[data-dbars]:before{content:none}   /* the old middle line; the zero line (.zl) sits where zero is */
+.chrow{display:flex;flex-wrap:wrap;gap:8px}.chw{position:relative}
+.chipb{display:flex;align-items:center;gap:4px;padding:7px 11px 7px 13px;border-radius:999px;background:var(--sunken);font-size:14.5px;font-weight:500;letter-spacing:-.2px;color:var(--ink)}
+.chipb svg{width:13px;height:13px;color:var(--ink-3)}.chipb.on{background:color-mix(in srgb,var(--blue) 12%,transparent);color:var(--blue)}.chipb.on svg{color:var(--blue)}
+.chw .menu{left:0;right:auto;top:calc(100% + 6px);min-width:210px}.chw .menu button{justify-content:space-between;margin:0}.chw .menu button i{width:20px;height:20px;flex:none;color:var(--blue)}.chw .menu button i svg{width:20px;height:20px}
+.chw .menu .mgnote{padding:8px 12px 6px;font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--hairline)}
+.cuh{margin-top:16px}.cubig{font-size:30px;font-weight:700;letter-spacing:-.8px;line-height:1.15}.cucap{font-size:13.5px;color:var(--ink-3);margin-top:2px}
+.culg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:13px;color:var(--ink-2)}
+.cusp{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;margin-top:14px}.cusp i{display:block}.cul2{justify-content:space-between;margin-top:6px}
+.cusel{display:flex;justify-content:space-between;margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--sunken);font-size:14.5px}.culg b{white-space:nowrap}
 .dax{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3)}
 .dl{padding:4px 16px}
 .dl .r{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--hairline)}
@@ -2441,7 +2451,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11a';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11b';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3401,6 +3411,7 @@ function renderAssets(holdings, usdInr){
         if (usdOut) return '$' + (x>=1e9 ? dp2(x/1e9,2)+'B' : x>=1e6 ? dp2(x/1e6,2)+'M' : x>=1e3 ? dp2(x/1e3, x>=1e5?0:x>=1e4?1:2)+'k' : x.toFixed(0));
         return '₹' + (x>=1e7 ? dp2(x/1e7,2)+'Cr' : x>=1e5 ? dp2(x/1e5, x>=1e6?1:2)+'L' : x>=1e3 ? dp2(x/1e3, x>=1e4?1:2)+'k' : x.toFixed(0)); };
       const skm = v => `${v<0?'−':v>0?'+':''}${km(v)}`;
+      const full = v => usdOut ? (v<0?'−':'') + usd2.format(Math.abs(v)) : fINR2(v);   // the exact amount behind a short figure
       // the logs end at the last morning snapshot: add today's point from the holdings
       // as they stand, so the line ends where the card does (new buys included)
       const ck0 = capSel ? 'C:Stocks|' + capSel : assetChartKey(assetCat, native && !inrMode), ck = 'T:' + ck0, base = histCache[ck0];
@@ -3412,10 +3423,10 @@ function renderAssets(holdings, usdInr){
       el.innerHTML = `${chartToggle(assetChart)}${native && haveFx ? `<div class="ccy" role="group" aria-label="Currency"><button data-ccy="usd" class="${inrMode?'':'on'}">$</button><button data-ccy="inr" class="${inrMode?'on':''}">₹</button></div>` : ''}
         <div class="albl">Current value</div><div class="big num money">${bigAmt(usdOut ? mo(total) : fINR2(total))}</div>
         ${(()=>{ const rate = native && haveFx ? `<span class="k">${day!=null?' · ':''}₹${fx.toFixed(2)}/$</span>` : '';   // the dollar rate, only on US Stocks
-          return day!=null || rate ? `<div class="dd num money">${day!=null ? `${arrowAmt(day, mo)}${dp!=null?` <span class="${cls(dp)}">(${fPct(Math.abs(dp),false)})</span>`:''} <span class="k">today</span>` : ''}${rate}</div>` : ''; })()}
+          return day!=null || rate ? `<div class="dd num money">${day!=null ? `<span class="tipv" data-full="${esc((day>0?'+':'') + full(day))}">${arrowAmt(day, mo)}</span>${dp!=null?` <span class="${cls(dp)}">(${fPct(Math.abs(dp),false)})</span>`:''} <span class="k">today</span>` : ''}${rate}</div>` : ''; })()}
         <div class="arow num">
-          <div><span>Invested</span><b class="money">${km(invested)}</b></div>
-          <div><span>Current P&amp;L</span><b class="money ${cls(ret)}">${skm(ret)}${rp!=null?` <i>(${fPct(rp,false)})</i>`:''}</b></div>
+          <div><span>Invested</span><b class="money tipv" data-full="${esc(full(invested))}">${km(invested)}</b></div>
+          <div><span>Current P&amp;L</span><b class="money ${cls(ret)}"><span class="tipv" data-full="${esc((ret>0?'+':'') + full(ret))}">${skm(ret)}</span>${rp!=null?` <i>(${fPct(rp,false)})</i>`:''}</b></div>
           <div><span>XIRR</span><b class="${xr!=null?cls(xr):''}">${xr!=null?fPct(xr,false):'—'}</b></div>
         </div>
         ${histInner(ck, assetChart, 'assetChart')}`;
@@ -3658,7 +3669,7 @@ function renderBucketList(bk, sel){
 // Net worth page (opens from the chevron on Overview): what it is made of, what
 // moved it over a period, highs and lows, then the monthly market gains
 let nwMoveR = load('inv.nwMove') || '3M';
-let chB = load('inv.chB') || 'all', chMenu = false;   // Change › Investments: ticked buckets, or 'all' for the whole investments line
+let chB = load('inv.chB') || 'all', chMenu = false, chipOpen = null;   // Change › Investments: ticked buckets, or 'all' for the whole investments line
 // The per-bucket daily log comes on its own request (action=bucketDaily), only when Net worth
 // opens, so the main refresh doesn't wait for it. Kept on the phone; asked again after 10 minutes.
 let BD = load('inv.bd'), bdBusy = false;
@@ -3751,6 +3762,18 @@ function renderTrends(daily, monthly){
       return { date:e.k, last:p.date, live:false, nw:p.value, chg:inv, pct:null, inv, invPct: q.value ? inv/q.value : null, cash:null, add, mkt: inv - add }; });
   }
   chPicker(daily, monthly, bkAll);
+  // Filters as three chips — what (Investments / Net worth / Combined), which buckets, and how often
+  const CK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const DN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+  const VW = [['inv','Investments'],['nw','Net worth'],['both','Combined']], PS = [['D','Daily'],['W','Weekly'],['M','Monthly']];
+  const bTick = chB==='all' ? [] : chB.filter(b=>bkAll.includes(b));
+  const bLbl = !bTick.length ? 'Total' : bTick.length===bkAll.length ? 'All buckets' : bTick.length===1 ? bTick[0] : bTick.length + ' buckets';
+  const chip = (k, lbl, menu) => `<span class="chw"><button class="chipb${chipOpen===k?' on':''}" data-chip="${k}" aria-haspopup="menu" aria-expanded="${chipOpen===k}">${esc(lbl)}${DN}</button>${chipOpen===k ? `<div class="menu" role="menu">${menu}</div>` : ''}</span>`;
+  const radio = (list, cur, attr) => list.map(([k,l])=>`<button role="menuitemradio" aria-checked="${k===cur}" ${attr}="${k}">${l}<i>${k===cur?CK:''}</i></button>`).join('');
+  const chips = `<div class="chrow">` + chip('v', VW.find(v=>v[0]===nwChgV)[1], radio(VW, nwChgV, 'data-cv'))
+    + (nwChgV==='inv' && bkAll.length ? chip('b', bLbl, bkAll.map(b=>`<button role="menuitemcheckbox" aria-checked="${bTick.includes(b)}" data-cb="${esc(b)}">${esc(b)}<i>${bTick.includes(b)?CK:''}</i></button>`).join('')
+        + `<button role="menuitemcheckbox" aria-checked="${chB==='all'}" data-cb="__all">Total<i>${chB==='all'?CK:''}</i></button><div class="mgnote">Buckets start 22 Oct 2026. Total also has NPS.</div>`) : '')
+    + chip('p', PS.find(p=>p[0]===nwPer)[1], radio(PS, nwPer, 'data-cp')) + `</div>`;
   const dd = s => new Date(s+'T00:00:00');
   const dLab = x => { if (nwPer==='D') return dd(x.date).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
     if (nwPer==='M') return dd(x.date+'-01').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
@@ -3778,7 +3801,18 @@ function renderTrends(daily, monthly){
     const sInv = win.reduce((a,y)=>a+(y.inv ?? 0),0), sCash = win.reduce((a,y)=>a+(y.cash ?? 0),0);
     const vseg = `<div class="dvseg" role="tablist">${[['both','Combined'],['nw','Net worth'],['inv','Investments']].map(([k,l])=>`<button data-chv="${k}" class="${k===V?'on':''}">${l}</button>`).join('')}</div>`;
     const other = y => V==='inv' ? (y.mkt!=null ? [`Market ${tipS(y.mkt, fCompact(y.mkt).replace(/^₹/,'+₹'), true)}`, `Added ${tipS(y.add, fCompact(y.add).replace(/^₹/,'+₹'), true)}`] : []) : split(y).filter(Boolean);
-    $('#nwDays').innerHTML = pseg + vseg + (V==='both' ? `
+    // Investments: the total, split into market and money put in, over the day bars
+    const barCard = () => { const sM = win.reduce((a,y)=>a+(y.mkt ?? 0),0), sA = win.reduce((a,y)=>a+(y.add ?? 0),0);
+      $('#nwDays').innerHTML = chips + `
+      <div class="cuh"><div class="cubig num money ${cls(net)}">${fChg(net)}</div><div class="cucap">in the last ${win.length} ${per[3]}${win[win.length-1].live ? ', today so far' : ''}</div></div>
+      <div class="cusp"><i style="flex:${Math.abs(sM)};background:var(--${sM<0?'down':'up'})"></i><i style="flex:${Math.abs(sA)};background:var(--blue)"></i></div>
+      <div class="culg cul2"><span>Market <b class="num money ${cls(sM)}">${fChg(sM)}</b></span><span>You put in <b class="num money ${cls(sA)}">${fChg(sA)}</b></span></div>
+      ${dBars(win)}
+      <div class="dax"><span>${esc(axLab(win[0]))}</span><span>${esc(axLab(win[win.length-1]))}</span></div>
+      <div class="cusel"><span>${esc(dLab(x))}${x.live?' <span class="faint">so far</span>':''}</span><b class="num money ${cls(val(x))}">${fChg(val(x))}</b></div>`
+      + (bSel.length ? `<div class="chbn">${esc(bSel.join(' + '))} · logged nightly from 22 Oct; today's move shows tomorrow</div>` : ''); };
+    if (V==='inv') barCard(); else
+    $('#nwDays').innerHTML = chips + (V==='both' ? `
       <div class="spstats lcr dsum"><div><span>Net worth</span><b class="num money ${cls(net)}">${fChg(net)}</b></div>
         <div><span><i class="dk iv"></i>Investments</span><b class="num money ${cls(sInv)}">${fChg(sInv)}</b></div><div><span><i class="dk cs"></i>Cash</span><b class="num money ${cls(sCash)}">${fChg(sCash)}</b></div></div>` : `
       ${V==='inv' ? (()=>{ const sM = win.reduce((a,y)=>a+(y.mkt ?? 0),0), sA = win.reduce((a,y)=>a+(y.add ?? 0),0);
@@ -3811,7 +3845,20 @@ function renderTrends(daily, monthly){
     window.__nwRerender = ()=>renderTrends(daily,monthly);
     $$('#nwDays [data-chv]').forEach(b=>b.onclick=()=>{ if (b.dataset.chv===nwChgV) return; nwChgV = b.dataset.chv; save('inv.nwChgV', nwChgV); renderTrends(daily,monthly); });
     if (DSEL) dselPaint();
-  } else { $('#nwDays').innerHTML = pseg + '<div class="empty">Not enough days logged yet</div>'; $('#nwDayList').hidden = true; }
+  } else { $('#nwDays').innerHTML = chips + '<div class="empty">Not enough days logged yet</div>'; $('#nwDayList').hidden = true; }
+  { const re = ()=>renderTrends(daily, monthly), box = $('#nwDays');
+    $$('[data-chip]', box).forEach(b=>b.onclick = e=>{ e.stopPropagation(); const k = b.dataset.chip; chipOpen = chipOpen===k ? null : k; re();
+      if (chipOpen) setTimeout(()=>document.addEventListener('click', function off(ev){
+        if (ev.target.closest && ev.target.closest('#nwDays .chw .menu')) return;
+        document.removeEventListener('click', off, true); if (chipOpen){ ev.stopPropagation(); ev.preventDefault(); chipOpen = null; re(); } }, true), 0); });
+    $$('[data-cv]', box).forEach(b=>b.onclick = e=>{ e.stopPropagation(); chipOpen = null; if (b.dataset.cv!==nwChgV){ nwChgV = b.dataset.cv; save('inv.nwChgV', nwChgV); } re(); });
+    $$('[data-cp]', box).forEach(b=>b.onclick = e=>{ e.stopPropagation(); chipOpen = null; if (b.dataset.cp!==nwPer){ dselExit(); nwPer = b.dataset.cp; save('inv.nwPer', nwPer); nwDaySel = null; nwDayAll = false; } re(); });
+    $$('[data-cb]', box).forEach(b=>b.onclick = e=>{ e.stopPropagation(); const v = b.dataset.cb;
+      if (v==='__all') chB = 'all';
+      else { const cur = chB==='all' ? [] : bTick.slice(), i = cur.indexOf(v);
+        if (i>=0){ if (cur.length===1) return; cur.splice(i,1); } else cur.push(v);   // keep at least one ticked
+        chB = cur; }
+      save('inv.chB', chB); nwDaySel = null; dselExit(); re(); }); }
   $$('#nwDays [data-per]').forEach(b=>b.onclick=()=>{ if (b.dataset.per===nwPer) return; dselExit(); nwPer=b.dataset.per; save('inv.nwPer',nwPer); nwDaySel=null; nwDayAll=false; renderTrends(daily,monthly); });
 
 }
@@ -4013,6 +4060,7 @@ function mgPicker(monthly, bm){
 }
 function chPicker(daily, monthly, bks){
   const el = $('#chPick'); if (!el) return;
+  el.innerHTML = ''; return;   // moved into the Change card's chips
   if (nwChgV!=='inv' || !bks.length){ el.innerHTML = ''; return; }
   const sel = chB==='all' ? [] : chB.filter(b=>bks.includes(b));
   const lbl = chB==='all' || !sel.length ? 'Total' : sel.length===bks.length ? 'All buckets' : sel.length===1 ? sel[0] : sel.length + ' buckets';
@@ -6695,8 +6743,8 @@ function spAccountsHtml(){
     n ? `<button data-zi="zakat"><span class="zico">${MOON_IC}</span>Zakat <b class="num money">${fKL(n.owing ? n.cur.left : n.cur.due)}</b></button>` : ''].filter(Boolean).join('');   // Construction · Interest · Zakat
   const head = `<div class="card liq"><div class="hd"><button class="k${liqOpen?' open':''}" data-liqpick aria-expanded="${liqOpen}">Liquid<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><button class="okchip" id="books" hidden aria-label="Books"></button></div>
       <div class="big num money">${bigAmt(fINR2(liquid))}</div>
-      <div class="g3"><div><span>Bank</span><b class="num money">${fLakh(sum.bank)}</b></div><div><span>Wallet</span><b class="num money">${fLakh(sum.wallet)}</b></div>
-        <div><span>Cards</span><b class="num money">${cards.owed > 0 ? '−' + fLakh(cards.owed) : fINR(0)}</b></div></div>
+      <div class="g3"><div><span>Bank</span><b class="num money">${tipS(sum.bank, fLakh(sum.bank))}</b></div><div><span>Wallet</span><b class="num money">${tipS(sum.wallet, fLakh(sum.wallet))}</b></div>
+        <div><span>Cards</span><b class="num money">${cards.owed > 0 ? tipS(-cards.owed, '−' + fLakh(cards.owed)) : fINR(0)}</b></div></div>
       ${liqOpen ? `<div class="liqsel">${liqAcc.map(a=>{ const on = !lx.has(a.name), k = accKind(a);
         return `<div class="lr${on?'':' off'}"><span>${esc(a.name)}<small>${k==='card'?'Card':k==='wallet'?'Wallet':'Bank'}</small></span><button class="sw${on?' on':''}" role="switch" aria-checked="${on}" data-liqx="${esc(a.name)}"></button></div>`; }).join('')}
         ${lx.size ? '<div class="lft"><button data-liqall>Show all</button></div>' : ''}</div>` : ''}

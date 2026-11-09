@@ -2441,7 +2441,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-10c';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11a';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -2488,6 +2488,8 @@ const fINR2 = v => v==null ? '—' : (v<0?'−':'') + '₹' + inrM().format(Math
 const fINRs = v => v==null ? '—' : (v<0?'−':'+') + '₹' + inrM().format(paiseOn() ? Math.abs(v) : Math.round(Math.abs(v)));
 // change figures in pills and the line under a value: always whole rupees, whatever Two decimals says
 const fChg = v => v==null ? '—' : (v<0?'−':'+') + '₹' + inr.format(Math.round(Math.abs(v)));
+// a short figure (₹1.2L, ₹4.5k) that shows the exact amount when tapped
+const tipS = (v, txt, signed) => v==null ? txt : `<span class="tipv" data-full="${esc((signed && v>0 ? '+' : '') + fINR2(v))}">${txt}</span>`;
 const fCompact = v => { if(v==null) return '—'; const a=Math.abs(v), s=v<0?'−':'';
   if(a>=1e7) return s+'₹'+(a/1e7).toFixed(2)+'Cr'; if(a>=1e5) return s+'₹'+(a/1e5).toFixed(1)+'L';
   if(a>=1e3) return s+'₹'+(a/1e3).toFixed(1)+'k'; return s+'₹'+inr.format(a); };
@@ -2733,8 +2735,8 @@ function renderHome(d){
 
   const tot = (nw.assets||[]).find(a=>a.isTotal) || {};
   $('#kpis').innerHTML = [
-    ['Invested', fCompact(tot.invested), ''],
-    ['Returns', fCompact(tot.currReturns), cls(tot.currReturns)],
+    ['Invested', tipS(tot.invested, fCompact(tot.invested)), ''],
+    ['Returns', tipS(tot.currReturns, fCompact(tot.currReturns), true), cls(tot.currReturns)],
     ['XIRR', fPct(tot.xirr,false), '']
   ].map(([k,v,c])=>k==='XIRR' ? `<div><button class="kxirr" data-league aria-label="Open the XIRR league"><div class="k">${k}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div><div class="v num money ${c}">${v}</div></button></div>` : `<div><div class="k">${k}</div><div class="v num money ${c}">${v}</div></div>`).join('');
   { const kx = $('#kpis [data-league]'); if (kx) kx.onclick = () => pushPage({ kind:'league', tab:'assets' }); }
@@ -3490,7 +3492,7 @@ function renderAssets(holdings, usdInr){
     </div>`;
   }).join('') + (list.length
       ? `<div class="listfoot"><span>${list.length} holding${list.length===1?'':'s'}</span>
-         <span>${(()=>{ const sm = list===rows ? sum : list.reduce((s,h)=>s+(native ? (h.value||0) : inInr(h)),0); return native && !inrMode ? usd.format(sm) : fCompact(native ? sm*fx : sm); })()}</span></div>${holdFootNote(rows, all)}`
+         <span>${(()=>{ const sm = list===rows ? sum : list.reduce((s,h)=>s+(native ? (h.value||0) : inInr(h)),0); return native && !inrMode ? usd.format(sm) : tipS(native ? sm*fx : sm, fCompact(native ? sm*fx : sm)); })()}</span></div>${holdFootNote(rows, all)}`
       : '<div class="empty">No holdings</div>');
 
   fitAssetRows();
@@ -3531,7 +3533,7 @@ function holdFootNote(rows, all){
   const less = nwA.filter(a=>/^Less:/i.test(a.name) && a.value);
   if (!extra.length && !less.length) return '';
   const names = L => L.map(a=>esc(a.name.replace(/^Less:\s*/i,''))).join(', ').replace(/, ([^,]*)$/, ' and $1');
-  const amt = L => fCompact(Math.abs(L.reduce((t,a)=>t+a.value,0)));
+  const amt = L => { const v = Math.abs(L.reduce((t,a)=>t+a.value,0)); return tipS(v, fCompact(v)); };
   return `<div class="lfnote">The total above ${extra.length ? `also counts ${names(extra)} (${amt(extra)})` : ''}${extra.length && less.length ? ', and ' : ''}${less.length ? `leaves out ${amt(less)} set aside for ${names(less)}` : ''}.</div>`;
 }
 // Two decimals on every figure is the default, but three money columns on a
@@ -3618,7 +3620,7 @@ function renderPlatforms(bk, sel){
     </div>`;
   }).join('') + (rows.length
       ? `<div class="listfoot"><span>${rows.length} platform${rows.length===1?'':'s'}</span>
-         <span>${fCompact(rows.reduce((s,p)=>s+p.value,0))}</span></div>`
+         <span>${(()=>{ const v = rows.reduce((s,p)=>s+p.value,0); return tipS(v, fCompact(v)); })()}</span></div>`
       : '<div class="empty">No platforms</div>');
   $$(sel + ' .row[data-p]').forEach(r=>r.onclick=()=>openPlatform(r.dataset.p, $$(sel + ' .row[data-p]').map(x=>x.dataset.p)));
 }
@@ -3647,7 +3649,7 @@ function renderBucketList(bk, sel){
   const buckets = (bk&&bk.buckets)||[];
   $(sel).innerHTML = buckets.map((b,bi)=>`<div class="row tap bkrow" data-bk="${esc(b.name)}">${bucketMark(b.name, bi)}
       <div class="l"><div class="n">${esc(b.name)}</div>
-        <div class="m num money">Invested ${fCompact(b.invested)}</div></div>
+        <div class="m num money">Invested ${tipS(b.invested, fCompact(b.invested))}</div></div>
       <div class="r"><div class="v num money">${fINR(b.value)}</div>
         <div class="p"><span class="pill sm ${cls(b.currPnl)} num money">${fPct(b.currPnlPct)}</span></div></div></div>`).join('') || '<div class="empty">No buckets</div>';
   $$(sel + ' .bkrow').forEach(r=>r.onclick=()=>pushPage({ kind:'bucket', bucket:r.dataset.bk, list: buckets.map(x=>x.name) }));
@@ -3755,7 +3757,7 @@ function renderTrends(daily, monthly){
     const a = dd(x.date), b = new Date(a.getTime()+6*864e5), sm = a.getMonth()===b.getMonth();
     return a.toLocaleDateString('en-GB',{day:'numeric',month: sm ? undefined : 'short'}) + '–' + b.toLocaleDateString('en-GB',{day:'numeric',month:'short'}); };
   const axLab = x => nwPer==='M' ? dd(x.date+'-01').toLocaleDateString('en-GB',{month:'short',year:'2-digit'}) : fDate(x.date);
-  const split = x => [x.inv!=null && Math.round(x.inv) ? `Inv ${fCompact(x.inv).replace(/^₹/,'+₹')}` : '', x.cash!=null && Math.round(x.cash) ? `Cash ${fCompact(x.cash).replace(/^₹/,'+₹')}` : ''];
+  const split = x => [x.inv!=null && Math.round(x.inv) ? `Inv ${tipS(x.inv, fCompact(x.inv).replace(/^₹/,'+₹'), true)}` : '', x.cash!=null && Math.round(x.cash) ? `Cash ${tipS(x.cash, fCompact(x.cash).replace(/^₹/,'+₹'), true)}` : ''];
   const PER = [['D','Daily',30,'days'],['W','Weekly',12,'weeks'],['M','Monthly',12,'months']], per = PER.find(x=>x[0]===nwPer);
   const pseg = `<div class="seg">${PER.map(x=>`<button data-per="${x[0]}" class="${x[0]===nwPer?'on':''}">${x[1]}</button>`).join('')}</div>`;
   // Change as bars: one per day / week / month, green above the zero line, red below; tap or drag to pick
@@ -3775,7 +3777,7 @@ function renderTrends(daily, monthly){
     const best = win.reduce((a,y)=>val(y)>val(a)?y:a, win[0]), worst = win.reduce((a,y)=>val(y)<val(a)?y:a, win[0]);
     const sInv = win.reduce((a,y)=>a+(y.inv ?? 0),0), sCash = win.reduce((a,y)=>a+(y.cash ?? 0),0);
     const vseg = `<div class="dvseg" role="tablist">${[['both','Combined'],['nw','Net worth'],['inv','Investments']].map(([k,l])=>`<button data-chv="${k}" class="${k===V?'on':''}">${l}</button>`).join('')}</div>`;
-    const other = y => V==='inv' ? (y.mkt!=null ? [`Market ${fCompact(y.mkt).replace(/^₹/,'+₹')}`, `Added ${fCompact(y.add).replace(/^₹/,'+₹')}`] : []) : split(y).filter(Boolean);
+    const other = y => V==='inv' ? (y.mkt!=null ? [`Market ${tipS(y.mkt, fCompact(y.mkt).replace(/^₹/,'+₹'), true)}`, `Added ${tipS(y.add, fCompact(y.add).replace(/^₹/,'+₹'), true)}`] : []) : split(y).filter(Boolean);
     $('#nwDays').innerHTML = pseg + vseg + (V==='both' ? `
       <div class="spstats lcr dsum"><div><span>Net worth</span><b class="num money ${cls(net)}">${fChg(net)}</b></div>
         <div><span><i class="dk iv"></i>Investments</span><b class="num money ${cls(sInv)}">${fChg(sInv)}</b></div><div><span><i class="dk cs"></i>Cash</span><b class="num money ${cls(sCash)}">${fChg(sCash)}</b></div></div>` : `
@@ -3856,6 +3858,7 @@ document.addEventListener('click', ev=>{
   const r = ev.target.closest && ev.target.closest(DSEL_ROW);
   if (dselEat){ dselEat = false; if (r){ ev.preventDefault(); ev.stopPropagation(); return; } }
   if (!r) return;
+  if (!DSEL && ev.target.closest('[data-full]')) return;   // a tap on a short figure shows its exact amount instead
   ev.preventDefault(); ev.stopPropagation();
   if (!DSEL){ if (r.dataset.dk !== nwDaySel){ nwDaySel = r.dataset.dk; haptic(4); if (window.__nwRerender) window.__nwRerender(); } return; }
   const k = r.dataset.dk; if (DSEL.has(k)) DSEL.delete(k); else DSEL.add(k);
@@ -6960,9 +6963,9 @@ function taxBody(p){
         <button class="taxre" data-taxrebuild aria-label="Recompute tax"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button></div>
       <div class="pg-big num money ${refund ? 'up' : ''}">${bigAmt(fINR2(Math.abs(R.balance)))}</div>
       <div class="pg-sub num money"><span class="grp"><span class="k">Tax ${fINR(R.tax)} · paid ${fINR(R.credits)}${live ? ' so far' : ''}</span></span></div>
-      <div class="spstats lcr"><div><span>Income</span><b class="num money">${fKL(R.normal)}</b></div>
-        <div><span>Gains</span><b class="num money ${cls(g.net.eqLT + g.net.eqST + g.net.otherLT + g.net.otherST + g.net.crypto)}">${fKL(g.net.eqLT + g.net.eqST + g.net.otherLT + g.net.otherST + g.net.crypto)}</b></div>
-        <div><span>Tax</span><b class="num money">${fKL(R.tax)}</b></div></div>
+      <div class="spstats lcr"><div><span>Income</span><b class="num money">${tipS(R.normal, fKL(R.normal))}</b></div>
+        <div><span>Gains</span><b class="num money ${cls(g.net.eqLT + g.net.eqST + g.net.otherLT + g.net.otherST + g.net.crypto)}">${(()=>{ const v = g.net.eqLT + g.net.eqST + g.net.otherLT + g.net.otherST + g.net.crypto; return tipS(v, fKL(v), true); })()}</b></div>
+        <div><span>Tax</span><b class="num money">${tipS(R.tax, fKL(R.tax))}</b></div></div>
       ${next ? `<div class="taxnext"><span class="tn-t">Next instalment <b class="num money">${fINR(next.amount)}</b> by ${esc(next.date.slice(0,4)===todayISO().slice(0,4) ? fDateY(next.date).replace(/ \d{4}$/,'') : fDateY(next.date))}</span><span class="pill sm ${days < 15 ? 'down' : ''}">${days <= 0 ? 'today' : days===1 ? '1 day' : days + ' days'}</span></div>`
         : A && A.needed && live ? `<div class="taxnext"><span>Pay the balance with the return</span></div>` : ''}
     </div>`;
@@ -6999,7 +7002,7 @@ function taxTabs(p, Y){
     const total = g.net.eqLT + g.net.eqST + g.net.otherLT + g.net.otherST + g.net.crypto;
     const used = Math.min(g.net.exempt, 125000), pct = Math.round(used / 1250);
     body = `<div class="cmhead taxsec" style="--sec:#a142f4"><h3>By asset</h3><span class="num money">${fINRs(total)}</span></div><div class="card tight">
-      ${keys.length ? keys.map(k=>{ const c = bc[k]; return `<div class="row"><div class="l"><div class="n">${esc(k)}</div><div class="m">${c.n} lot${c.n===1?'':'s'} · sold ${fKL(c.proceeds)}${c.lt ? ' · long ' + fINRs(c.lt) : ''}${c.st ? ' · short ' + fINRs(c.st) : ''}</div></div><div class="r"><div class="v num money ${cls(c.lt + c.st)}">${fINRs(c.lt + c.st)}</div></div></div>`; }).join('') : '<div class="empty">Nothing sold this year</div>'}</div>
+      ${keys.length ? keys.map(k=>{ const c = bc[k]; return `<div class="row"><div class="l"><div class="n">${esc(k)}</div><div class="m">${c.n} lot${c.n===1?'':'s'} · sold ${tipS(c.proceeds, fKL(c.proceeds))}${c.lt ? ' · long ' + fINRs(c.lt) : ''}${c.st ? ' · short ' + fINRs(c.st) : ''}</div></div><div class="r"><div class="v num money ${cls(c.lt + c.st)}">${fINRs(c.lt + c.st)}</div></div></div>`; }).join('') : '<div class="empty">Nothing sold this year</div>'}</div>
       <div class="cmhead taxsec" style="--sec:#a142f4"><h3>How it is taxed</h3></div><div class="card tight">
       ${row('Long-term Indian equity', fINRs(g.net.eqLT), '12.5% above ₹1.25L a year')}
       <div class="row"><div class="l"><div class="n">Exemption used</div><div class="tbar"><i style="width:${pct}%;--c:var(--pc0)"></i></div><div class="m">${fINR(used)} of ₹1,25,000 · ${fINR(125000 - used)} left this year</div></div></div>
@@ -7008,7 +7011,7 @@ function taxTabs(p, Y){
       ${g.net.carry.st || g.net.carry.lt ? row('Loss carried forward', fINR(g.net.carry.st + g.net.carry.lt), 'Short ' + fINR(g.net.carry.st) + ' · long ' + fINR(g.net.carry.lt) + ', for 8 years') : ''}</div>`;
   } else {
     const inst = (A && A.inst) || [], paidRows = (inc.advance||[]).map(a=>row(esc(fDateY(a.date)), fINR(a.amount), esc(a.note || 'Advance tax')));
-    const st = x => !x.past ? '<span class="pill sm">upcoming</span>' : x.short > 0 ? `<span class="pill sm down">short ${fKL(x.short)}</span>` : '<span class="pill sm up">paid</span>';
+    const st = x => !x.past ? '<span class="pill sm">upcoming</span>' : x.short > 0 ? `<span class="pill sm down">short ${tipS(x.short, fKL(x.short))}</span>` : '<span class="pill sm up">paid</span>';
     body = `<div class="cmhead taxsec" style="--sec:#f9ab00"><h3>Already paid</h3><span class="num money">${fINR(R.credits)}</span></div><div class="card tight">
       ${inc.tds ? row('TDS on salary', fINR(inc.tds)) : ''}${inc.epfTds ? row('TDS on EPF payout', fINR(inc.epfTds)) : ''}
       ${paidRows.join('') || row('Advance tax', '—', 'Nothing recorded yet', 'sub')}${R.ftc ? row('US tax credit', fINR(R.ftc), 'Form 67 with the return') : ''}
@@ -7400,7 +7403,7 @@ function booksBody(){
 const cShort = n => String(n||'').replace(/\s*[·\-–|]\s*construction$/i,'') || n;
 function cMonthLine(name){
   const ym = ymNow(), sp = constrEntries().filter(e=>e.account===name && e.date.slice(0,7)===ym).reduce((t,e)=>t+e.amount,0);
-  return sp ? `${esc(fKL(sp))} spent in ${esc(ymShort(ym))}` : `Nothing spent in ${esc(ymShort(ym))}`;
+  return sp ? `${tipS(sp, esc(fKL(sp)))} spent in ${esc(ymShort(ym))}` : `Nothing spent in ${esc(ymShort(ym))}`;
 }
 // Accounts tab: every group but Construction (it lives on its own page). Construction page: only='construction'
 function accGroupsHtml(acc, only){
@@ -7533,7 +7536,7 @@ function accBody(p){
   const owed = Math.max(0,-bal);
   const ccHero = !card ? '' : `<div class="cch"><div><span>${bal>0?'Credit':'Outstanding'}</span><b class="pg-big num money ${owed>0?'down':''}">${bigAmt(fINR2(bal>0?bal:owed))}</b></div>
       <div class="r"><span>Due date</span><b>${due ? due.getDate()+' '+due.toLocaleString('en-US',{month:'short'})+" '"+String(due.getFullYear()).slice(2) : '—'}</b>${due && owed>0 ? `<small>${(()=>{ const n = Math.round((due - new Date(new Date().toDateString()))/864e5); return n<=0 ? 'today' : n===1 ? 'tomorrow' : 'in ' + n + ' days'; })()}</small>` : ''}</div></div>
-    ${a.limit ? `<div class="cclim">${pbar(owed/a.limit)}<div class="ln"><span class="num money">${(owed/a.limit*100).toFixed(1)}% used</span><span class="num money">Limit ${fCompact(a.limit)}</span></div></div>` : ''}
+    ${a.limit ? `<div class="cclim">${pbar(owed/a.limit)}<div class="ln"><span class="num money">${(owed/a.limit*100).toFixed(1)}% used</span><span class="num money">Limit ${tipS(a.limit, fCompact(a.limit))}</span></div></div>` : ''}
     ${(()=>{ // the month at a glance: the last payment, what's left to use, spent this month (short figures; a tap shows the exact amount)
       const spent = -mm.filter(m=>m.kind==='expense').reduce((t,m)=>t+m.amt,0), pay = moves.find(m=>m.amt>0 && m.kind==='transfer');
       const kq = (v, cls) => `<b class="num money tipv ${cls||''}" data-full="${esc(fINR2(v))}">${esc(fKL(v))}</b>`;
@@ -9336,7 +9339,7 @@ function recDetailBody(p){
   const posted = past.filter(x=>x.st==='posted'), tot = posted.reduce((a,x)=>a+x.amt, 0);
   const tile = r.kind==='transfer' ? moveTile('transfer') : r.kind==='income' ? moveTile('income') : xTile(r.cat);
   return `<div class="card pg-card rdhero"><div class="pg-id">${tile}<div class="grow"><div class="t">${esc(r.name)}</div><div class="s"><span class="num money">${fINR2(r.amount)}</span> · ${esc(recMeta(r))}</div></div></div>
-      <div class="spstats lcr"><div><span>Status</span><b>${esc(r.active ? (r.auto ? 'Automatic' : 'Confirm each') : 'Paused')}</b></div><div><span>Posted</span><b class="num">${posted.length}×</b></div><div><span>Total</span><b class="num money">${fKL(tot)}</b></div></div></div>
+      <div class="spstats lcr"><div><span>Status</span><b>${esc(r.active ? (r.auto ? 'Automatic' : 'Confirm each') : 'Paused')}</b></div><div><span>Posted</span><b class="num">${posted.length}×</b></div><div><span>Total</span><b class="num money">${tipS(tot, fKL(tot))}</b></div></div></div>
     <div class="cmhead"><h3>Schedule</h3><span>${esc(r.end ? 'until ' + ymLabel(r.end) : 'every month')}</span></div>
     <div class="card tight"><table class="rdt"><thead><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead><tbody>${list.map(tr).join('') || '<tr><td colspan="3" class="empty">Nothing yet</td></tr>'}</tbody></table></div>
     ${past.length > 12 ? `<div class="ft ctr" style="padding:10px 24px 0;color:var(--ink-3);font-size:12px">Showing the last 12 of ${past.length} months</div>` : ''}`;

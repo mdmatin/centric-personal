@@ -1336,6 +1336,9 @@ html[data-theme=dark] .recf .segw button.on{background:#636366}
 .recf .r .vl{margin-left:auto}
 .xsf{margin-top:4px}.xsf .segw{margin:0 16px}.xsf .grp{margin-top:12px}
 .xs-amt{margin-left:auto;display:flex;align-items:center;gap:8px}.xs-amt .rin{width:5.5em;flex:none;text-align:right}.xs-amt i{font-style:normal;color:var(--ink-3)}
+.tqp{margin-bottom:12px}.tqh{margin:14px 20px 6px;font-size:12px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
+.tqc{display:flex;flex-wrap:wrap;gap:7px;margin:0 16px}.tqc button{padding:6px 12px;border-radius:999px;background:var(--canvas);border:1px solid var(--card-edge);font-size:14px;color:var(--ink)}.tqc button.on{background:var(--ink);color:var(--canvas);border-color:var(--ink)}
+#v-txn .fchip{margin:0 16px 12px}
 .xs-clr{display:block;margin:10px auto 0;color:var(--blue);font-size:15px;padding:6px 10px}
 .xs-n{margin:2px 20px 0;font-size:13px;color:var(--ink-2)}
 .xs-top{margin-top:4px}.xs-sug .row{width:100%;text-align:left}.xs-si{width:34px;height:34px;border-radius:10px;background:var(--sunken);color:var(--ink-2);display:grid;place-items:center;flex:none}.xs-si svg{width:16px;height:16px}
@@ -2377,7 +2380,8 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
     </section>
 
     <section class="view" id="v-txn">
-      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" placeholder="Search ticker, platform, remark"></div>
+      <div class="srow tqrow"><div class="search" id="tqBox"></div><button class="fbtn" id="tqF" aria-label="Filters" aria-expanded="false"></button></div>
+      <div id="tqTop"></div>
       <div id="txnList"></div>
     </section>
   </main>
@@ -2455,7 +2459,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11h';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11i';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3324,7 +3328,7 @@ function clearSearches(){
   [['#assetSearch','#assetList'],['#xSearch','#xList']].forEach(([b,l])=>{ const box = $(b), inp = box && box.querySelector('input');
     if (inp && inp.value){ inp.value = ''; box.classList.remove('has'); if ($(l)) applySearch($(l), ''); } });
   { const sb = $('#assetSearch'), t = $('#holdTools'); if (sb && t){ sb.dataset.open = ''; sb.hidden = true; t.hidden = false; } }
-  const q = $('#q'); if (q && q.value){ q.value = ''; if (D) renderTxns(D.data.transactions); }
+  if (tq.q || tq.toks.length || tqOn() || tq.fo){ tq = { q:'', toks:[], f:TQ_EMPTY(), fo:false }; const i = $('#tqBox input'); if (i){ i.value = ''; $('#tqBox').classList.remove('has'); } if (D) renderTxns(D.data.transactions); }
 }   // the details list starts collapsed
 // a tap on a short figure (data-full) shows the exact amount above it for a moment
 document.addEventListener('click', e=>{
@@ -3939,25 +3943,145 @@ function paintLogGaps(daily){
   const ack = nwEl.querySelector('[data-logack]'); if (ack) ack.onclick = ()=>{ const a = new Set(load('inv.logAck') || []); past.forEach(g=>a.add(g.log)); save('inv.logAck', [...a].slice(-60)); paintLogGaps(daily); };
 }
 
-function renderTxns(txns){
-  const q=($('#q').value||'').toLowerCase().trim();
-  const list=(txns||[]).filter(t=>!q || [t.ticker,t.platform,t.category,t.remark,t.bucket,t.order].join(' ').toLowerCase().includes(q));
-  let html='', last=null, open=false;
-  // no display cap any more — the list only holds what was deliberately loaded
-  list.forEach(t=>{
-    if(t.date!==last){ if(open) html+='</div>'; html+=`<div class="daygroup">${fDate(t.date)}</div><div class="card tight">`; last=t.date; open=true; }
-    html+=txnRow(t,false);
-  });
-  if(open) html+='</div>';
-  // no point offering older rows while a search is narrowing what is on screen
-  const canLoadMore = !q && !txnsExhausted;
-  $('#txnList').innerHTML = (html || '<div class="empty">No transactions</div>')
-    + (canLoadMore ? `<button class="loadmore" id="btnMoreTxns">Load older</button>` : '')
-    + (txnsExhausted && !q ? `<div class="loadend">${list.length} transactions · that is everything</div>` : '');
-  $$('#txnList .row').forEach(b=>b.onclick=()=>openSheet((txns||[]).find(t=>t.row==b.dataset.row)));
-  const more = $('#btnMoreTxns'); if(more) more.onclick = loadOlderTxns;
+/* ---------- Trades: search like Spend's ----------
+   Typing suggests tickers, platforms, categories, buckets and buy/sell; a tap adds it as a chip, and
+   several can be picked. The filter button opens buy/sell, platform, category, bucket, period and amount
+   (pick several of each). The same kind matches any of its picks; different kinds must all match.
+   A search or filter loads every trade first, so nothing older is missed. */
+const TQ_EMPTY = () => ({ ord:'all', pl:[], cat:[], bk:[], per:'all', from:'', to:'', min:'', max:'' });
+let tq = { q:'', toks:[], f:TQ_EMPTY(), fo:false }, tqAll = null, tqBusy = false;
+const TQ_FIELDS = [['tk','Ticker',t=>t.ticker],['pl','Platform',t=>t.platform],['cat','Category',t=>t.category],['bk','Bucket',t=>t.bucket||'No bucket'],['ord','Order',t=>t.order]];
+const TQ_PER = [['all','All time'],['month','This month'],['3m','Last 3 months'],['year','This year'],['custom','Custom']];
+const tqOn = () => { const f = tq.f; return f.ord!=='all' || f.pl.length || f.cat.length || f.bk.length || f.per!=='all' || f.min!=='' || f.max!==''; };
+const tqNum = v => v==='' || v==null ? null : Number(String(v).replace(/,/g,''));
+const tqInr = t => Math.abs(isUSD(t) ? (t.inr!=null ? t.inr : (t.amount||0) * (((D||{}).data||{}).netWorth||{head:{}}).head.usdInr || 0) : (t.amount||0));
+function tqRange(f){
+  const t = new Date(), ymd = d => d.toLocaleDateString('en-CA'), today = ymd(t);
+  if (f.per==='month') return [today.slice(0,8)+'01', today];
+  if (f.per==='3m'){ const d = new Date(t); d.setMonth(d.getMonth()-3); return [ymd(d), today]; }
+  if (f.per==='year') return [today.slice(0,5)+'01-01', today];
+  if (f.per==='custom') return [f.from||'0000', f.to||'9999'];
+  return ['0000','9999'];
 }
-$('#q').oninput = ()=> D && renderTxns(D.data.transactions);
+function tqMatch(txns){
+  const f = tq.f, [a,b] = tqRange(f), lo = tqNum(f.min), hi = tqNum(f.max), by = {};
+  tq.toks.forEach(k=>(by[k.f]=by[k.f]||[]).push(k.v));
+  return txns.filter(t=>{
+    if (t.date < a || t.date > b) return false;
+    if (f.ord!=='all' && t.order!==f.ord) return false;
+    if (f.pl.length && !f.pl.includes(t.platform)) return false;
+    if (f.cat.length && !f.cat.includes(t.category)) return false;
+    if (f.bk.length && !f.bk.includes(t.bucket||'No bucket')) return false;
+    const v = tqInr(t); if (lo!=null && v < lo) return false; if (hi!=null && v > hi) return false;
+    for (const k in by){
+      if (k==='*'){ const q = qWords(t.ticker, t.platform, t.category, t.bucket, t.order, t.remark); if (!by[k].every(w=>w.toLowerCase().split(/\s+/).every(x=>q.includes(x)))) return false; }
+      else { const g = TQ_FIELDS.find(x=>x[0]===k)[2]; if (!by[k].includes(g(t))) return false; }
+    }
+    return true; });
+}
+function tqSuggest(txns, q){
+  q = q.toLowerCase().trim(); if (!q) return [];
+  const seen = new Map(), have = new Set(tq.toks.map(k=>k.f+'|'+k.v));
+  txns.forEach(t=>TQ_FIELDS.forEach(([f,,g])=>{ const v = g(t); if (!v) return; const lv = String(v).toLowerCase(); if (!lv.includes(q) || have.has(f+'|'+v)) return;
+    const k = f+'|'+v, o = seen.get(k) || { f, v, n:0, pre: lv.startsWith(q) }; o.n++; seen.set(k, o); }));
+  const ord = { tk:0, pl:1, cat:2, bk:3, ord:4 };
+  return [...seen.values()].sort((a,b)=>(b.pre-a.pre) || (ord[a.f]-ord[b.f]) || (b.n-a.n)).slice(0, 8);
+}
+// every trade, once, the first time a search or filter needs them
+async function tqLoadAll(){
+  if (tqBusy || !D || (tqAll && tqAll===D.data.transactions) || txnsExhausted) return;
+  tqBusy = true;
+  try{ const j = await api({ action:'txns', limit: 5000 }), rows = j && j.data && j.data.transactions;
+    if (rows){ D.data.transactions = rows; tqAll = rows; txnsExhausted = true; save(LS.data, D); } }
+  catch(e){ toast(e.message || 'Could not load every trade'); }
+  finally{ tqBusy = false; if (D) renderTxns(D.data.transactions); }
+}
+let tqWired = false;
+function tqWire(){
+  if (tqWired) return; tqWired = true;
+  const box = $('#tqBox'); box.innerHTML = searchInner('', 'Ticker, platform, bucket…');
+  $('#tqF').innerHTML = FILTER_IC;
+  const inp = box.querySelector('input');
+  const re = () => D && renderTxns(D.data.transactions);
+  inp.oninput = () => { tq.q = inp.value; box.classList.toggle('has', !!tq.q); re(); };
+  inp.onkeydown = e => {
+    if (e.key==='Enter' && tq.q.trim()){ tq.toks.push({ f:'*', v:tq.q.trim() }); tq.q = ''; inp.value = ''; box.classList.remove('has'); re(); }
+    if (e.key==='Backspace' && !inp.value && tq.toks.length){ tq.toks.pop(); re(); } };
+  box.querySelector('.sx').onclick = () => { inp.value = ''; tq.q = ''; box.classList.remove('has'); re(); inp.focus(); };
+  $('#tqF').onclick = () => { tq.fo = !tq.fo; re(); };
+}
+const tqChev = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
+function tqTopHtml(txns){
+  const f = tq.f, X = '<span aria-hidden="true">✕</span>', lbl = Object.fromEntries(TQ_FIELDS.map(x=>[x[0],x[1]]));
+  const chips = tq.toks.map((k,i)=>`<button data-tqx="t${i}" aria-label="Remove ${esc(k.v)}">${esc(k.f==='*' ? '“'+k.v+'”' : k.v)}${X}</button>`)
+    .concat(f.ord!=='all' ? [`<button data-tqx="ord">${esc(f.ord)}${X}</button>`] : [])
+    .concat(['pl','cat','bk'].flatMap(k=>f[k].map(v=>`<button data-tqx="${k}:${esc(v)}">${esc(v)}${X}</button>`)))
+    .concat(f.per!=='all' ? [`<button data-tqx="per">${esc(f.per==='custom' ? [f.from&&fDate(f.from), f.to&&fDate(f.to)].filter(Boolean).join(' – ') || 'Custom' : TQ_PER.find(p=>p[0]===f.per)[1])}${X}</button>`] : [])
+    .concat(f.min!=='' || f.max!=='' ? [`<button data-tqx="amt">${esc(f.min!=='' && f.max!=='' ? '₹'+f.min+' – ₹'+f.max : f.min!=='' ? '≥ ₹'+f.min : '≤ ₹'+f.max)}${X}</button>`] : []);
+  const uniq = g => [...new Set(txns.map(g).filter(Boolean))].sort();
+  const pick = (k, list) => `<div class="tqc">${list.map(v=>`<button data-tqp="${k}" data-v="${esc(v)}" class="${f[k].includes(v)?'on':''}">${esc(v)}</button>`).join('')}</div>`;
+  const row = (l, right) => `<div class="r"><div class="lb">${l}</div>${right}</div>`;
+  const opt = (v, l, cur) => `<option value="${esc(v)}" ${v===cur?'selected':''}>${esc(l)}</option>`;
+  const dt = (k, l) => row(l, `<span class="vl">${f[k] ? esc(fDate(f[k])) : 'Any'}${tqChev}</span><input class="ovl" type="date" data-tqd="${k}" value="${esc(f[k]||'')}">`);
+  const panel = !tq.fo ? '' : `<div class="prof recf xsf tqp"><div class="segw">${[['all','All'],['Buy','Buy'],['Sell','Sell']].map(([k,l])=>`<button data-tqo="${k}" class="${f.ord===k?'on':''}">${l}</button>`).join('')}</div>
+    <div class="grp">
+      ${row('Period', `<span class="vl">${esc(TQ_PER.find(p=>p[0]===f.per)[1])}${tqChev}</span><select data-tqs="per">${TQ_PER.map(p=>opt(p[0],p[1],f.per)).join('')}</select>`)}
+      ${f.per==='custom' ? dt('from','From') + dt('to','To') : ''}
+      ${row('Amount', `<span class="xs-amt"><input class="rin" data-tqa="min" inputmode="decimal" placeholder="Min ₹" value="${esc(f.min)}"><i>–</i><input class="rin" data-tqa="max" inputmode="decimal" placeholder="Max ₹" value="${esc(f.max)}"></span>`)}
+    </div>
+    <div class="tqh">Platform</div>${pick('pl', uniq(t=>t.platform))}
+    <div class="tqh">Category</div>${pick('cat', uniq(t=>t.category))}
+    <div class="tqh">Bucket</div>${pick('bk', uniq(t=>t.bucket||'No bucket'))}
+    ${tqOn() ? '<button class="xs-clr" data-tqclr>Clear filters</button>' : ''}</div>`;
+  return (chips.length ? `<div class="fchip">${chips.join('')}</div>` : '') + panel;
+}
+function renderTxns(txns){
+  tqWire();
+  txns = txns || [];
+  const active = tq.toks.length || tqOn(), typing = !!tq.q.trim();
+  if ((active || typing) && !txnsExhausted && !tqBusy) tqLoadAll();
+  $('#tqF').classList.toggle('on', !!(tqOn() || tq.fo)); $('#tqF').setAttribute('aria-expanded', tq.fo ? 'true' : 'false');
+  $('#tqTop').innerHTML = tqTopHtml(txns);
+  const loading = tqBusy ? '<div class="xs-n">Loading every trade…</div>' : '';
+  if (typing){
+    const S = tqSuggest(txns, tq.q), lbl = Object.fromEntries(TQ_FIELDS.map(x=>[x[0],x[1]]));
+    $('#txnList').innerHTML = loading + `<div class="card tight xs-sug">${S.map((x,i)=>`<button class="row" data-sug="${i}"><span class="xs-si">${SRCH_ICON}</span>
+        <div class="l"><div class="n">${esc(x.v)}</div><div class="m">${lbl[x.f]} · ${x.n} ${x.n===1?'trade':'trades'}</div></div></button>`).join('')}
+      <button class="row" data-sug="*"><span class="xs-si">${SRCH_ICON}</span><div class="l"><div class="n">Search “${esc(tq.q.trim())}” everywhere</div></div></button></div>`;
+    $$('#txnList [data-sug]').forEach(b=>b.onclick=()=>{ const k = b.dataset.sug, x = k==='*' ? { f:'*', v:tq.q.trim() } : { f:S[Number(k)].f, v:S[Number(k)].v };
+      tq.toks.push(x); tq.q = ''; const inp = $('#tqBox input'); inp.value = ''; $('#tqBox').classList.remove('has'); renderTxns(D.data.transactions); });
+  } else {
+    const list = active ? tqMatch(txns) : txns;
+    const MAX = 300; let html='', last=null, open=false;
+    list.slice(0, MAX).forEach(t=>{
+      if(t.date!==last){ if(open) html+='</div>'; html+=`<div class="daygroup">${fDate(t.date)}</div><div class="card tight">`; last=t.date; open=true; }
+      html+=txnRow(t,false);
+    });
+    if(open) html+='</div>';
+    const sum = o => list.filter(t=>t.order===o).reduce((a,t)=>a+tqInr(t),0);
+    const head = active ? `<div class="tline num money"><div><span>Trades</span><b>${list.length}</b></div><div><span>Bought</span><b>${fINR(sum('Buy'))}</b></div><div><span>Sold</span><b>${fINR(sum('Sell'))}</b></div></div>` : '';
+    const canLoadMore = !active && !txnsExhausted;
+    $('#txnList').innerHTML = loading + head + (html || `<div class="empty">${active ? (tqBusy ? '' : 'No trades match') : 'No transactions'}</div>`)
+      + (list.length > MAX ? `<div class="empty">Showing the newest ${MAX} — narrow the search to see more</div>` : '')
+      + (canLoadMore ? `<button class="loadmore" id="btnMoreTxns">Load older</button>` : '')
+      + (txnsExhausted && !active ? `<div class="loadend">${list.length} transactions · that is everything</div>` : '');
+    $$('#txnList .row').forEach(b=>b.onclick=()=>openSheet(txns.find(t=>t.row==b.dataset.row)));
+    const more = $('#btnMoreTxns'); if(more) more.onclick = loadOlderTxns;
+  }
+  // chips and the filter panel
+  const re = () => renderTxns(D.data.transactions);
+  $$('#tqTop [data-tqx]').forEach(b=>b.onclick=()=>{ const k = b.dataset.tqx, f = tq.f;
+    if (k[0]==='t' && /^t\d+$/.test(k)) tq.toks.splice(Number(k.slice(1)),1);
+    else if (k==='ord') f.ord = 'all'; else if (k==='per'){ f.per = 'all'; f.from = f.to = ''; } else if (k==='amt'){ f.min = f.max = ''; }
+    else { const [g, v] = [k.slice(0, k.indexOf(':')), k.slice(k.indexOf(':')+1)]; f[g] = f[g].filter(x=>x!==v); }
+    re(); });
+  $$('#tqTop [data-tqo]').forEach(b=>b.onclick=()=>{ tq.f.ord = b.dataset.tqo; re(); });
+  $$('#tqTop [data-tqp]').forEach(b=>b.onclick=()=>{ const k = b.dataset.tqp, v = b.dataset.v, a = tq.f[k]; tq.f[k] = a.includes(v) ? a.filter(x=>x!==v) : a.concat(v); re(); });
+  $$('#tqTop [data-tqs]').forEach(s=>s.onchange=()=>{ tq.f[s.dataset.tqs] = s.value; re(); });
+  $$('#tqTop [data-tqd]').forEach(s=>s.onchange=()=>{ tq.f[s.dataset.tqd] = s.value; re(); });
+  $$('#tqTop [data-tqa]').forEach(s=>{ s.onchange = ()=>{ tq.f[s.dataset.tqa] = s.value.trim(); re(); }; });
+  const c = $('#tqTop [data-tqclr]'); if (c) c.onclick = ()=>{ tq.f = TQ_EMPTY(); re(); };
+}
 
 function fillLists(l){
   if(!l) return;

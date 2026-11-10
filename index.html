@@ -789,6 +789,7 @@ html[data-theme=dark] .xfresh{background:rgba(41,151,255,.28);box-shadow:0 0 0 3
 .tday{display:flex;justify-content:space-between}
 .tday span:last-child{text-transform:none;letter-spacing:0}
 .tday em{font-style:normal;color:var(--up);margin-right:8px}.tday em.solo{margin-right:0}
+.xday em{font-style:normal;color:var(--up)}   /* a day of refunds on a category page: money back, green */
 .row .v.up{color:var(--up)}
 /* add sheet (shared) */
 /* the add / edit form is a full page: Cancel on the left, the title centred */
@@ -2467,7 +2468,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11x';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-12a';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -4940,7 +4941,10 @@ addEventListener('scroll', ()=>{
 $$('.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 $$('[data-go]').forEach(b=>b.onclick=()=>show(b.dataset.go, b.dataset.sec));
 $('#goPlatforms').onclick = ()=>pushPage({ kind:'platlist' });
-$('#navBack').onclick = ()=>show(activeView==='txn' ? 'break' : 'home');
+// Trades and Net worth are inner screens: each gets a history entry, so the back swipe (and the
+// browser's Back) leaves them the same way the on-screen back button does
+let ivSkip = false, ivFromPop = false;
+$('#navBack').onclick = ()=>{ if (history.state && history.state.iv) history.back(); else show(activeView==='txn' ? 'break' : 'home'); };
 // A shorter list after a filter tap would pull the page up and move the filter
 // row; pad the bottom just enough to keep the scroll where it was. The pad goes
 // when you switch tabs.
@@ -4958,6 +4962,11 @@ function show(v, sec){
   if (v==='acc'){ v = 'spend'; sec = 'accounts'; }                // the Accounts tab is Spend's accounts section, on its own
   if (v==='spend' && sec!=='accounts' && activeView==='spend' && spSec==='accounts') activeView = 'acc';   // Accounts → Spend counts as a fresh open
   { const pad = $('#homePad'); if (pad) pad.style.height = '0px'; }
+  { const inner = v==='trend' || v==='txn', st = history.state || {};
+    if (!ivFromPop) try{
+      if (inner && st.iv!==v && !pageStack.length) history.pushState({ pg: 0, iv: v }, '');
+      else if (!inner && st.iv){ ivSkip = true; history.back(); }   // left by a tab: drop its entry quietly
+    }catch(e){} }
   const prevView = activeView; if (prevView!==v || (v==='spend' && (sec||'list')!==spSec)) clearSearches(); activeView=v;
   const isAcc = v==='spend' && sec==='accounts';
   const tabV = v==='trend' ? 'home' : v==='txn' ? 'break' : isAcc ? 'acc' : v;                 // Trends opens from Overview, so Overview stays lit
@@ -5204,6 +5213,7 @@ function popPageNow(instant){
 // home-screen app needs ours. When Safari's swipe goes back, skip our slide-out
 // so the page doesn't animate twice.
 window.addEventListener('popstate', e=>{
+  if (ivSkip){ ivSkip = false; return; }
   const want = (e.state && e.state.pg) || 0;
   const ours = backFromButton; backFromButton = false;
   if (!ours && pageStack.length > want){
@@ -5215,6 +5225,9 @@ window.addEventListener('popstate', e=>{
   }
   if ($('#sheet') && $('#sheet').classList.contains('show') && typeof closeSheet==='function') closeSheet();
   while (pageStack.length > want) popPageNow();
+  // back out of Trades / Net worth to the screen they opened from
+  if (!pageStack.length && !(e.state && e.state.iv) && (activeView==='txn' || activeView==='trend')){
+    ivFromPop = true; try{ show(activeView==='txn' ? 'break' : 'home'); } finally { ivFromPop = false; } }
 });
 try{ if (!history.state) history.replaceState({ pg: 0 }, ''); }catch(e){}
 
@@ -6314,15 +6327,14 @@ function spMonthlyHtml(){
 }
 
 function xRow(e, showCat){
-  const title = e.note || e.desc || e.sub || e.category;
-  const meta = [showCat && e.category!==title ? e.category : null, e.sub && e.sub!==title ? e.sub : null, e.account||null].filter(Boolean).map(esc).join(' · ');
-  return `<button class="row" data-xrow="${e.row}" data-q="${esc(qWords(e.note, e.desc, e.category, e.sub, e.account))}">${xTile(e.category)}
-    <div class="l"><div class="n">${esc(title)}</div>${meta?`<div class="m">${meta}</div>`:''}</div>
-    <div class="r"><div class="v num money">${fINR2(e.amount)}</div></div></button>`;
+  const B = rowBits(moveK({ kind:'expense', e }), e, { noCat: !showCat });
+  return `<button class="row trow" data-xrow="${e.row}" data-q="${esc(qWords(e.note, e.desc, e.category, e.sub, e.account))}">${B.icon}
+    <div class="l"><div class="n">${esc(B.title)}</div>${B.metaTxt || e.amount<0 ? `<div class="m">${B.metaHtml}</div>` : ''}</div>
+    <div class="r"><div class="v num money ${e.amount<0?'up':''}">${e.amount<0 ? '+' + fINR2(-e.amount) : fINR2(e.amount)}</div></div></button>`;
 }
 function xDayGroups(list, showCat){
   const by = {}; list.forEach(e=>(by[e.date]=by[e.date]||[]).push(e));
-  return Object.keys(by).sort().reverse().map(d=>`<div class="daygroup xday"><span>${esc(dayHd(d))}</span><span class="num money">${fINR2(by[d].reduce((a,e)=>a+e.amount,0))}</span></div>
+  return Object.keys(by).sort().reverse().map(d=>`<div class="daygroup xday"><span>${esc(dayHd(d))}</span><span class="num money">${(()=>{ const t = by[d].reduce((a,e)=>a+e.amount,0); return t<0 ? `<em class="up solo">+${fINR2(-t)}</em>` : fINR2(t); })()}</span></div>
     <div class="card tight">${by[d].map(e=>xRow(e, showCat)).join('')}</div>`).join('');
 }
 /* Transactions — expenses, transfers and money in for the month, newest first.
@@ -6649,23 +6661,68 @@ function isRecEntry(e, kind){
   const L = recList(); if (!L.length || !e.note) return false;
   return L.some(r=>r.kind===kind && (r.note||r.name)===e.note && (kind==='transfer' ? r.account===e.from && r.to===e.to : r.account===e.account));
 }
+// One row for every money list (Spend › Activity, an account's or card's activity, a category,
+// Construction): the same title, the same marker and the same grey line everywhere.
+//   title   expense: note → description → subcategory → category · income: source → description → type
+//           transfer: From → To
+//   marker  a small arrow before the grey line for anything that isn't a plain expense:
+//           ↑ refund (amber) · ↑ income / cashback (green) · ⇄ transfer · ↗ investment · ↑ liquidation
+//   grey    category · subcategory · account (or type · account · remark for money in; the note for a
+//           transfer). The account is left out on that account's own page; lists without day headings
+//           add the date at the end.
+const moveK = m => m.kind==='expense' || m.k==='expense' ? (m.e.amount<0 ? (isInvest(m.e.category)?'lq':'rf') : (isInvest(m.e.category)?'iv':'ex'))
+  : (m.kind||m.k)==='income' ? (m.e.type==='Adjustment' ? 'adj' : 'in') : 'tr';
+// main icons that say WHAT it was, so they never repeat the small marker (which says the kind):
+// money in by its type, an investment by its asset, a transfer by the other account, an adjustment as sliders
+const IN_IC = [
+  [/salary|wage|payroll/i,      'in', 'M4 8h16v11H4zM9 8V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M4 13h16'],          // briefcase
+  [/freelanc|consult|fees?/i,   'us', 'M5 6h14v9H5zM3 18h18'],                                                     // laptop
+  [/interest/i,                 'gd', 'M19 5L5 19M7 9.2a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4M17 19.2a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4'],   // %
+  [/cash\s*back|reward/i,       'in', 'M20.5 12a8.5 8.5 0 1 1-2.5-6M20.5 4v4h-4M12 8v8M9.5 10.5c0-1 1.1-1.5 2.5-1.5s2.5.6 2.5 1.6-1.1 1.4-2.5 1.4-2.5.5-2.5 1.5 1.1 1.5 2.5 1.5 2.5-.5 2.5-1.5'],   // coin coming back
+  [/dividend/i,                 'mf', 'M5 7c0 1.1 3.1 2 7 2s7-.9 7-2-3.1-2-7-2-7 .9-7 2zM5 7v5c0 1.1 3.1 2 7 2s7-.9 7-2V7M5 12v5c0 1.1 3.1 2 7 2s7-.9 7-2v-5'],   // coins
+  [/gift|family|mom|dad/i,      'cr', 'M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-2-3-5-3-5-1s3 1 5 1c2 0 5 1 5-1s-3-2-5 1'],   // gift
+];
+const IN_OTHER = 'M3 8h15a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8zM3 8l3-3h10M16 14h4';   // wallet
+const svgTile = (tint, d) => `<div class="tile ${tint}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg></div>`;
+const incTile = t => { const m = IN_IC.find(([re])=>re.test(t||'')); return m ? svgTile(m[1], m[2]) : svgTile('in', IN_OTHER); };
+const ADJ_IC = 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4';   // sliders
+// an investment or a liquidation: the asset it went into (US Stocks, Gold…), else the category's own
+const invTile = e => { const l = e.sub || e.desc || ''; return l && ICON_MAP.some(([re])=>re.test(l)) ? mark(l) : xTile(e.category); };
+function rowBits(k, e, o){
+  o = o || {}; const accOk = n => n && n!==o.acc ? (o.short ? cShort(n) : n) : null;
+  let icon, title, meta;
+  if (k==='ex' || k==='rf' || k==='lq' || k==='iv'){
+    icon = k==='iv' || k==='lq' ? invTile(e) : xTile(e.category); title = e.note || e.desc || e.sub || e.category;
+    meta = [e.category!==title && !o.noCat ? e.category : null, e.sub && e.sub!==title ? e.sub : null, accOk(e.account)];   // a category's own page leaves its name out
+  } else if (k==='tr'){
+    icon = nameMark(o.acc && e.to===o.acc ? e.from : e.to); title = o.acc && e.to===o.acc ? 'From ' + e.from : o.acc && e.from===o.acc ? 'To ' + e.to : `${o.short ? cShort(e.from) : e.from} → ${o.short ? cShort(e.to) : e.to}`;   // on an account's page, just the other side
+    meta = [e.note || e.desc || 'Transfer'];
+  } else if (k==='adj'){
+    icon = svgTile('ch', ADJ_IC); title = 'Balance adjustment'; meta = [accOk(e.account), e.remark];
+  } else {
+    icon = incTile(e.type); title = e.source || e.desc || e.type || 'Income'; meta = [e.source || e.desc ? e.type : null, accOk(e.account), e.remark];
+  }
+  if (k==='rf') meta.unshift('Refund'); else if (k==='lq') meta.unshift('Liquidation');   // the marker says it, in words too
+  if (o.date) meta.push(fDate(e.date));
+  const badge = k==='ex' ? '' : `<span class="tarw ${k}" aria-label="${TX_NAME[k]}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="${TX_ARW[k]}"/></svg></span>`;
+  const pend = e.date > todayISO() ? 'Pending · ' : '';
+  return { icon, title, metaHtml: badge + `<span class="mt">${esc(pend + meta.filter(Boolean).join(' · '))}</span>`, metaTxt: meta.filter(Boolean).join(' · ') };
+}
 function txRow(x){
   const e = x.e, badge = `<span class="tarw ${x.k}" aria-label="${TX_NAME[x.k]}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="${TX_ARW[x.k]}"/></svg></span>`;
-  let icon, title, meta, amt, cls = '', q;
+  let amt, cls = '', q;
+  const B = rowBits(x.k, e); let title = B.title;
   if (x.k==='ex' || x.k==='rf' || x.k==='lq' || x.k==='iv'){
-    icon = xTile(e.category); title = e.note || e.desc || e.sub || e.category; if (isRecEntry(e, 'expense')) title += ' ↻';
-    meta = [e.category!==title ? e.category : null, e.sub && e.sub!==title ? e.sub : null, e.account].filter(Boolean).join(' · ');
+    if (isRecEntry(e, 'expense')) title += ' ↻';
     amt = (x.k==='rf'||x.k==='lq' ? '+' : '') + fINR2(Math.abs(e.amount)); cls = x.k==='rf'||x.k==='lq' ? 'up' : ''; q = qWords(e.note, e.desc, e.category, e.sub, e.account, TX_NAME[x.k]);
   } else if (x.k==='tr'){
-    icon = moveTile('transfer'); title = `${e.from} → ${e.to}` + (isRecEntry(e, 'transfer') ? ' ↻' : ''); meta = e.note || e.desc || 'Transfer'; amt = fINR2(e.amount); cls = 'tr'; q = qWords(e.from, e.to, e.note, e.desc, 'transfer');
+    if (isRecEntry(e, 'transfer')) title += ' ↻'; amt = fINR2(e.amount); cls = 'tr'; q = qWords(e.from, e.to, e.note, e.desc, 'transfer');
   } else if (x.k==='adj'){
-    icon = moveTile('income'); title = 'Balance adjustment'; meta = [e.account, e.remark].filter(Boolean).join(' · ');
     amt = (e.amount<0 ? '' : '+') + fINR2(e.amount); cls = 'tr'; q = qWords(e.account, e.remark, 'adjustment balance');
   } else {
-    icon = moveTile('income'); title = e.source || e.desc || e.type || 'Income'; meta = [e.source || e.desc ? e.type : '', e.account, e.remark].filter(Boolean).join(' · ');
     amt = '+' + fINR2(e.amount); cls = 'up'; q = qWords(e.source, e.desc, e.type, e.account, e.remark, 'money in income');
   }
-  return `<button class="row trow" data-tx="${x.k}:${e.row}" data-q="${esc(q)}">${icon}<div class="l"><div class="n">${esc(title)}</div><div class="m">${x.k==='ex' ? '' : badge}<span class="mt">${esc(meta)}</span></div></div>
+  return `<button class="row trow" data-tx="${x.k}:${e.row}" data-q="${esc(q)}">${B.icon}<div class="l"><div class="n">${esc(title)}</div><div class="m">${B.metaHtml}</div></div>
     <div class="r"><div class="v num money ${cls}">${amt}</div></div></button>`;
 }
 // short weekday beside each day heading in Activity and search: 28 Oct · Wed
@@ -6682,7 +6739,7 @@ function spListHtml(){
   const days = Object.keys(by).sort().reverse().map(dt=>{
     const sp = by[dt].filter(counts).reduce((s,x)=>s+x.e.amount,0);
     const ii = by[dt].filter(x=>x.k==='in').reduce((s,x)=>s+x.e.amount,0);
-    return `<div class="daygroup tday"><span>${esc(dayHd(dt))}</span><span class="num money">${ii?`<em class="up">+${fINR2(ii)}</em>`:''}${sp?fINR2(sp):''}</span></div>
+    return `<div class="daygroup tday"><span>${esc(dayHd(dt))}</span><span class="num money">${ii||sp<0?`<em class="up${sp>0?'':' solo'}">+${fINR2(ii + (sp<0 ? -sp : 0))}</em>`:''}${sp>0?fINR2(sp):''}</span></div>
       <div class="card tight">${by[dt].map(txRow).join('')}</div>`;
   }).join('');
   // the filter lives behind a button beside search; counts are for this month
@@ -7437,13 +7494,12 @@ function constrBody(p){
   const shownActs = acts.filter(x=>CA_TYPE[cf][1](x) && (!q || caWords(x).includes(q)));
   const by = {}; shownActs.forEach(x=>{ (by[x.date.slice(0,7)] = by[x.date.slice(0,7)] || []).push(x); });
   const amtHtml = v => `<div class="v num money ${v>0?'up':''}">${v>0 ? '+' + fINR2(v) : v<0 ? '−' + fINR2(-v).replace('−','') : fINR2(0)}</div>`;
-  const row = x => { if (!x.x) return `<button class="row" data-mv="${x.k}:${x.e.row}">${x.k==='expense' ? xTile(x.e.category) : moveTile(x.k)}
-      <div class="l"><div class="n">${esc(x.title)}</div><div class="m">${esc(fDate(x.date))} · ${esc(x.meta)}</div></div>
-      <div class="r">${x.amt ? amtHtml(x.amt) : `<div class="v num money">${fINR2(x.e.amount)}</div>`}</div></button>`;
-    const e = x.x, title = e.note || e.sub || 'Construction';
-    const meta = [fDate(e.date), e.sub && e.sub!==title ? e.sub : null, e.account ? cShort(e.account) : null].filter(Boolean).map(esc).join(' · ');
-    return `<button class="row" data-xrow="${e.row}">${xTile(e.category)}
-      <div class="l"><div class="n">${esc(title)}</div><div class="m">${meta}</div></div>
+  const row = x => { if (!x.x){ const B = rowBits(moveK(x), x.e, { short: true, date: true }); return `<button class="row trow" data-mv="${x.k}:${x.e.row}">${B.icon}
+      <div class="l"><div class="n">${esc(B.title)}</div><div class="m">${B.metaHtml}</div></div>
+      <div class="r">${x.amt ? amtHtml(x.amt) : `<div class="v num money">${fINR2(x.e.amount)}</div>`}</div></button>`; }
+    const e = x.x, B = rowBits(moveK({ kind:'expense', e }), e, { short: true, date: true });
+    return `<button class="row trow" data-xrow="${e.row}">${B.icon}
+      <div class="l"><div class="n">${esc(B.title)}</div><div class="m">${B.metaHtml}</div></div>
       <div class="r"><div class="v num money ${e.amount<0?'up':''}">${e.amount<0?'+'+fINR2(-e.amount):fINR2(e.amount)}</div></div></button>`; };
   // every month, newest first: its name and what was spent, then its entries in one card (each with its date).
   // Search and filter sit beside the title; while either is on, only the months with matches show
@@ -7690,9 +7746,9 @@ const dayHead = (d, inn, out) => `<div class="daygroup tday"><span>${esc(dayHd(d
 const mvDayHead = (d, ms) => dayHead(d, ms.reduce((t,m)=>t + (m.amt > 0 ? m.amt : 0), 0), ms.reduce((t,m)=>t + (m.amt < 0 ? -m.amt : 0), 0));
 const dayRows = (ms, tile) => { const by = {}; ms.forEach(m=>(by[m.date]=by[m.date]||[]).push(m));
   return Object.keys(by).sort().reverse().map(d=>`${mvDayHead(d, by[d])}
-    <div class="card tight">${by[d].map(m=>`<button class="row" data-mv="${m.kind}:${m.e.row}">${m.kind==='expense'?xTile(m.e.category):moveTile(m.kind)}
-      <div class="l"><div class="n">${esc(m.title)}</div><div class="m">${m.date > todayISO() ? 'Pending · ' : ''}${esc(m.meta)}</div></div>
-      <div class="r"><div class="v num money ${m.date > todayISO() ? 'pend' : m.amt>0?'up':''}">${m.amt>0?'+':'−'}${fINR2(Math.abs(m.amt)).replace('−','')}</div></div></button>`).join('')}</div>`).join(''); };
+    <div class="card tight">${by[d].map(m=>{ const B = rowBits(moveK(m), m.e, { acc: m.acc }); return `<button class="row trow" data-mv="${m.kind}:${m.e.row}">${B.icon}
+      <div class="l"><div class="n">${esc(B.title)}</div><div class="m">${B.metaHtml}</div></div>
+      <div class="r"><div class="v num money ${m.date > todayISO() ? 'pend' : m.amt>0?'up':''}">${m.amt>0?'+':'−'}${fINR2(Math.abs(m.amt)).replace('−','')}</div></div></button>`; }).join('')}</div>`).join(''); };
 // Spending | Activity as two tabs, one month switcher for both
 function ccMonths(moves){ const ym = ymNow(), first = moves.length ? moves[moves.length-1].date.slice(0,7) : ym;
   const out = []; for (let m = first < ymAdd(ym,-5) ? first : ymAdd(ym,-5); m <= ym; m = ymAdd(m,1)) out.push(m); return out; }
@@ -7743,7 +7799,7 @@ function ccSpendHtml(a, p, moves){
 // Activity: Sort on the left; search and filter (All / Spends / Payments) on the right
 const CC_SORT = [['new','Newest'],['old','Oldest'],['hi','Highest'],['lo','Lowest']];
 const CC_TYPE = { all:['All',()=>true], spends:['Spends',m=>m.kind==='expense'], pay:['Payments',m=>m.kind!=='expense'] };
-const BK_TYPE = { all:['All',()=>true], spends:['Spends',m=>m.kind==='expense'], in:['Money in',m=>m.kind==='income'], tr:['Transfers',m=>m.kind==='transfer'] };
+const BK_TYPE = { all:['All',()=>true], spends:['Spends',m=>m.kind==='expense'], in:['Money in',m=>m.amt>0], tr:['Transfers',m=>m.kind==='transfer'] };   // Money in: everything the In figure counts — income, transfers in, refunds and shares paid back
 const actTypes = p => { const a = accByName(p.acc); return a && accKind(a)==='card' ? CC_TYPE : BK_TYPE; };
 function ccActPool(p, moves){
   const T = actTypes(p), sel = p.ccm || ymNow(), f = T[p.actF] ? p.actF : 'all', q = String(p.actQ||'').trim().toLowerCase();
@@ -7755,9 +7811,9 @@ function ccActPool(p, moves){
 }
 function ccActRows(p, moves){
   const pool = ccActPool(p, moves), N = p.actN || 12, shown = pool.slice(0, N), sel = p.ccm || ymNow();
-  return (shown.length ? shown.map(m=>`<button class="row" data-mv="${m.kind}:${m.e.row}">${m.kind==='expense'?xTile(m.e.category):moveTile(m.kind)}
-      <div class="l"><div class="n">${esc(m.title)}</div><div class="m">${esc(m.meta)} · ${m.date > todayISO() ? 'Pending · ' : ''}${esc(fDate(m.date))}</div></div>
-      <div class="r"><div class="v num money ${m.date > todayISO() ? 'pend' : m.amt>0?'up':''}">${m.amt>0?'+':'−'}${fINR2(Math.abs(m.amt)).replace('−','')}</div></div></button>`).join('')
+  return (shown.length ? shown.map(m=>{ const B = rowBits(moveK(m), m.e, { acc: p.acc, date: true }); return `<button class="row trow" data-mv="${m.kind}:${m.e.row}">${B.icon}
+      <div class="l"><div class="n">${esc(B.title)}</div><div class="m">${B.metaHtml}</div></div>
+      <div class="r"><div class="v num money ${m.date > todayISO() ? 'pend' : m.amt>0?'up':''}">${m.amt>0?'+':'−'}${fINR2(Math.abs(m.amt)).replace('−','')}</div></div></button>`; }).join('')
     : `<div class="empty">${p.actQ ? 'No matches' : 'Nothing'} in ${esc(ymLabel(sel).split(' ')[0])}</div>`)
     + (pool.length > N ? `<button class="more" data-actmore>Show ${Math.min(20, pool.length-N)} more</button>` : '');
 }
@@ -7798,9 +7854,9 @@ function accBody(p){
       <div class="btns"><button class="cancel">Cancel</button><button class="save">Set balance</button></div></div>` : '';
   const by = {}; moves.forEach(m=>(by[m.date]=by[m.date]||[]).push(m));
   const list = Object.keys(by).sort().reverse().slice(0,40).map(d=>`${mvDayHead(d, by[d])}
-    <div class="card tight">${by[d].map(m=>`<button class="row" data-mv="${m.kind}:${m.e.row}">${m.kind==='expense'?xTile(m.e.category):moveTile(m.kind)}
-      <div class="l"><div class="n">${esc(m.title)}</div><div class="m">${m.date > todayISO() ? 'Pending · ' : ''}${esc(m.meta)}</div></div>
-      <div class="r"><div class="v num money ${m.date > todayISO() ? 'pend' : m.amt>0?'up':''}">${m.amt>0?'+':'−'}${fINR2(Math.abs(m.amt)).replace('−','')}</div></div></button>`).join('')}</div>`).join('');
+    <div class="card tight">${by[d].map(m=>{ const B = rowBits(moveK(m), m.e, { acc: a.name }); return `<button class="row trow" data-mv="${m.kind}:${m.e.row}">${B.icon}
+      <div class="l"><div class="n">${esc(B.title)}</div><div class="m">${B.metaHtml}</div></div>
+      <div class="r"><div class="v num money ${m.date > todayISO() ? 'pend' : m.amt>0?'up':''}">${m.amt>0?'+':'−'}${fINR2(Math.abs(m.amt)).replace('−','')}</div></div></button>`; }).join('')}</div>`).join('');
   return `<div class="card pg-card pg-hero">
       <div class="pg-id">${accMark(a)}<div class="grow"><div class="t">${esc(a.name)}</div>${sub ? `<div class="s">${sub}</div>` : ''}</div>
         <button class="chart-tg ${p.accMenu?'on':''}" data-accmenu aria-label="Edit" aria-haspopup="menu" aria-expanded="${p.accMenu?'true':'false'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button></div>

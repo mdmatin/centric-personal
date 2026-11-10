@@ -2467,7 +2467,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11v';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11x';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3360,7 +3360,7 @@ function placeTip(t){
 }
 document.addEventListener('scroll', ()=>document.querySelectorAll('.tipb').forEach(placeTip), { passive:true, capture:true });   // Indian stocks: All / Liquid / Large / Small / Mid
 
-let usInr = false;   // US Stocks in rupees at today's rate; starts in dollars every time
+let usInr = true;    // US Stocks card: opens in rupees (cost at buy-date rates, like Net Worth); $ when tapped
 function renderAssets(holdings, usdInr){
   const all = holdings || [], all0 = all, fx = usdInr || 1, haveFx = !!usdInr;
   const inInr = h => isUSD(h) ? (h.value||0) * fx : (h.value||0);
@@ -3386,7 +3386,7 @@ function renderAssets(holdings, usdInr){
   const cats = CAT_ORDER.filter(c=>all.some(h=>h.category===c));
   $('#assetChips').innerHTML = ['All',...cats].map(c=>
     `<button class="chip ${c===assetCat?'on':''}" data-c="${esc(c)}">${esc(CAT_LABEL[c]||c)}</button>`).join('');
-  $$('#assetChips .chip').forEach(c=>c.onclick=()=>{ assetCat=c.dataset.c; usInr=false; capOpen=false; renderAssets(all, fx); });
+  $$('#assetChips .chip').forEach(c=>c.onclick=()=>{ assetCat=c.dataset.c; usInr=true; capOpen=false; renderAssets(all, fx); });
 
   const pnlInr = h => inInr(h) - invInr(h);
   const SORTS = { value:(a,b)=>inInr(b)-inInr(a), pnl:(a,b)=>pnlInr(b)-pnlInr(a),
@@ -3621,6 +3621,15 @@ function platformDay(name){
   return { dayChange, dayChangePct: start ? dayChange / start : null };
 }
 
+// a platform's holdings in dollars, for its $ view: each US holding's share of the Master List in
+// dollars (cost is what the dollars cost), anything else at today's rate
+function platUsd(rows, fx){
+  const MH = new Map((D.data.holdings||[]).map(h=>[String(h.ticker).toUpperCase(), h]));
+  return rows.map(r0=>{ const r = { ...r0 }, h = MH.get(String(r.ticker).toUpperCase()), sh = h && h.qty>0 ? Math.min(1, r.qty/h.qty) : 0;
+    if (r.category==='US Stocks' && sh){ r.invested = (h.invested||0)*sh; r.value = (h.value||0)*sh; }
+    else { r.invested = (r.invested||0)/fx; r.value = (r.value||0)/fx; }
+    r.realized = (r.realized||0)/fx; return r; });
+}
 function renderPlatforms(bk, sel){
   sel = sel || '#platformList'; if (!$(sel)) return;
   const hs = ((bk&&bk.holdings)||[]).filter(h=>h.qty>1e-7);
@@ -3642,7 +3651,7 @@ function renderPlatforms(bk, sel){
   }
   const rows = [...by.values()].sort((a,b)=>b.value-a.value);
   $(sel).innerHTML = rows.map(p=>{
-    const ret = p.value - p.invested, pc = p.invested ? ret/p.invested : null;
+    const ret = p.value - p.invested, pc = p.invested ? ret/p.invested : null;   // rupees: what the rupees did, as on Net Worth
     const d = platformDay(p.platform);
     const day = d && d.dayChange!=null
       ? `<div class="s">${dayPill(d.dayChange, fINR, d.dayChangePct)}</div>` : '';
@@ -5612,7 +5621,7 @@ function holdingBody(ticker){
   const cat = (h&&h.category) || (led[0]&&led[0].category) || (txns[0]&&txns[0].category) || '';
   const fx = d.netWorth && d.netWorth.head && d.netWorth.head.usdInr;
   // US stocks: $ / ₹ switch on the page (₹ at today's rate; invested at what the rupees actually cost)
-  const isUS = cat==='US Stocks', top0 = pageStack[pageStack.length-1] || {}, inrOn = isUS && !!fx && !!top0.inr;
+  const isUS = cat==='US Stocks', top0 = pageStack[pageStack.length-1] || {}, inrOn = isUS && !!fx && top0.inr!==false;   // ₹ unless $ was tapped
   const k = inrOn ? fx : 1, usdRow = isUS && !inrOn;
   const m0 = nativeMoney(usdRow), pm0 = priceMoney(usdRow), m = v => v==null ? m0(v) : m0(v*k), pm = v => v==null ? pm0(v) : pm0(v*k);
   const ccy = isUS && fx ? `<div class="ccy" role="group" aria-label="Currency"><button data-hccy="usd" class="${inrOn?'':'on'}">$</button><button data-hccy="inr" class="${inrOn?'on':''}">₹</button></div>` : '';
@@ -5728,15 +5737,8 @@ function platformBody(name){
   // $ reads each US holding from the Master List in dollars (its share by quantity), so cost is what the
   // dollars cost, not today's rate; anything else on the platform, realised and today go back at today's rate.
   const fx = D.data.netWorth && D.data.netWorth.head && D.data.netWorth.head.usdInr;
-  const hasUS = !!fx && !ca && rows.some(r=>r.category==='US Stocks'), usdOn = hasUS && !top0.inr;
-  if (usdOn){
-    const MH = new Map((D.data.holdings||[]).map(h=>[String(h.ticker).toUpperCase(), h]));
-    rows.forEach(r=>{ const h = MH.get(String(r.ticker).toUpperCase()), sh = h && h.qty>0 ? Math.min(1, r.qty/h.qty) : 0;
-      if (r.category==='US Stocks' && sh){ r.invested = (h.invested||0)*sh; r.value = (h.value||0)*sh; }
-      else { r.invested /= fx; r.value /= fx; }
-      r.realized /= fx; });
-    rows.sort((a,b)=>b.value-a.value);
-  }
+  const hasUS = !!fx && !ca && rows.some(r=>r.category==='US Stocks'), usdOn = hasUS && top0.inr===false;   // ₹ unless $ was tapped
+  if (usdOn){ const u = platUsd(rows, fx); rows.length = 0; rows.push(...u); rows.sort((a,b)=>b.value-a.value); }   // its $ view
   const ccy = hasUS ? `<div class="ccy" role="group" aria-label="Currency"><button data-hccy="usd" class="${usdOn?'on':''}">$</button><button data-hccy="inr" class="${usdOn?'':'on'}">₹</button></div>` : '';
   // every figure below goes through these: dollars when switched to $, rupees otherwise
   const fM = usdOn ? (v => usd.format(v)) : fINR, fM2 = usdOn ? (v => usd2.format(v)) : fINR2;
@@ -5789,7 +5791,7 @@ function platformBody(name){
     </div>
     <div class="hrow"><span>XIRR</span><b>${xr!=null?fPct(xr,false):c.loading?'…':'—'}</b></div>
     <div class="hrow"><span>Realised</span><b class="money">${fM(rl)}</b></div>
-    ${pdivs.length ? `<button class="hrow hlink" data-pdiv><span>Dividends earned</span><b class="money">${nativeMoney(true)(pdivs.reduce((a,x)=>a+x.amount,0))}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></b></button>` : ''}
+    ${pdivs.length ? `<button class="hrow hlink" data-pdiv><span>Dividends earned</span><b class="money">${(()=>{ const dv = pdivs.reduce((a,x)=>a+x.amount,0); return hasUS && !usdOn ? fINR2(dv*fx) : nativeMoney(true)(dv); })()}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></b></button>` : ''}
     <div class="hrow tr2"><span>Total P&amp;L${tp!=null?` <em class="${cls(tp)}">(${arrowPct(tp)})</em>`:''}</span><b class="money">${(ret+rl)<0?'−':(ret+rl)>0?'+':''}${fM(Math.abs(ret+rl))}</b></div>
     </div>`;
   const held = `<div class="sechead"><h2>Holdings</h2></div>

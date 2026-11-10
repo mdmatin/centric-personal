@@ -174,7 +174,8 @@ main{padding:0}
 .pill.up{background:var(--up-bg);color:var(--up)}
 .pill.down{background:var(--down-bg);color:var(--down)}
 .pill.sm{font-size:12px;padding:2px 8px}
-.pill .arrow{font-size:.78em;margin-right:1px;color:inherit}
+.pill .arrow,.dtxt .arrow{font-size:.78em;margin-right:1px;color:inherit}
+.dtxt{font-size:12.5px;font-weight:400;white-space:nowrap}.dtxt:not(.up):not(.down){color:var(--ink-3)}
 .hero .today{font-size:14px;color:var(--ink-2);letter-spacing:-.224px}
 
 .kpirow{display:flex;margin-top:18px;padding-top:16px;border-top:1px solid var(--hairline)}
@@ -232,7 +233,14 @@ main{padding:0}
 .row .m{font-size:12.5px;color:var(--ink-2);letter-spacing:-.06px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .l.wrap .m{white-space:normal;overflow:visible;line-height:1.32;margin-top:1px}
 .row .r{text-align:right;white-space:nowrap;flex:none}
-.row .r .v{font-size:16px;letter-spacing:-.35px}
+.row .r .v{font-size:16px;letter-spacing:-.35px;font-weight:600}
+/* Amount weights — one system everywhere:
+     hero figure (the big number on a card or page) ....... 600, display size
+     a row's or tile's own amount, totals, stat values ..... 600
+     amounts in a row's grey line, notes, captions ......... 400
+     pills (today's change, returns) ....................... 600, small
+   so a figure that IS the row is always the same weight, and anything said about it is regular. */
+b.money,b.num,strong.money{font-weight:600}
 .row .r .p{margin-top:3px}
 .row .r .s{font-size:12.5px;color:var(--ink-2)}
 
@@ -537,7 +545,7 @@ html[data-theme=dark] .mpick-g button,html[data-theme=dark] .mpick-h button{back
 .taxnext{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--hairline);font-size:13.5px;color:var(--ink-2)}
 .taxnext b{color:var(--ink)}.taxnext .pill{margin-left:auto;flex:none;white-space:nowrap}
 .taxnext .tn-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row.tot .n{font-weight:600}.row.tot .v{font-weight:700}
+.row.tot .n{font-weight:600}.row.tot .v{font-weight:600}
 .row.sub .n{color:var(--ink-2);font-weight:400}
 .taxin .row .l{flex:1;min-width:0}.taxin .row .r{max-width:45%;min-width:0}
 .taxin .row .v{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -2191,7 +2199,7 @@ html[data-theme=dark] .league .lgt.gold{color:#ffd60a}
 .lg .lgh1{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#a67c00}.lg .lgh1 svg{width:18px;height:18px}
 html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 .lg .lgk{margin-top:10px;font-size:13px;color:var(--ink-2)}
-.lg .lgbig{font:700 40px/1.1 var(--font-disp,inherit);letter-spacing:-1.2px;margin-top:2px}
+.lg .lgbig{font:600 40px/1.1 var(--font-disp,inherit);letter-spacing:-1.2px;margin-top:2px}
 .lg .lgsum{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px;color:var(--ink-2)}
 .lg .lgsum i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}.lg .lgsum i.g{background:#ffc400}.lg .lgsum i.r{background:var(--down)}
 .lg .lgchips{padding:2px 16px 12px}
@@ -2472,7 +2480,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-12d';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-12h';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -2782,7 +2790,7 @@ function renderHome(d){
   $('#assetView').innerHTML = `<button data-av="list" class="${asCards?'':'on'}" aria-label="List">${vIc('M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01')}</button><button data-av="cards" class="${asCards?'on':''}" aria-label="Cards">${vIc('M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z')}</button>`;
   $$('#assetView [data-av]').forEach(b=>b.onclick=()=>{ const y = window.scrollY; save('inv.assetView', b.dataset.av); renderHome(d); holdScroll(y); });
   const aTap = a => /^EPF$/i.test(a.name) && epfD() ? ' tap" data-epf="1' : /^NPS$/i.test(a.name) && npsD() ? ' tap" data-nps="1' : assetCatFor(a.name, d.holdings) ? ' tap" data-acat="' + esc(assetCatFor(a.name, d.holdings)) : '';
-  const aPill = a => dayPill(a.dayChange, fINR, a.dayChangePct);   // today's change: the same pill as everywhere else
+  const aPill = a => dayTxt(a.dayChange, fINR, a.dayChangePct);    // today's change: same signs and arrows as the pill, as plain coloured text (no pill)
   if (asCards){
     // cards: value, its share of the total (bar and %), today's change
     const sum = rows.reduce((t,a)=>t+Math.max(0,a.value||0),0) || 1;
@@ -3517,8 +3525,8 @@ function renderAssets(holdings, usdInr){
     // switches the list to detailed rows with the amounts, and back
     const dpct = h.day==null ? null : (inInr(h) - h.day) ? h.day / (inInr(h) - h.day) : null;
     const left = day==null ? m2(h.ltp)
-      : hDetail ? `<span class="${cls(day)}">${day<0?'−':day>0?'+':''}${m(Math.round(Math.abs(day))).replace(/\.0+(?!\d)/,'')}${dpct!=null ? ' · ' + upDn(dpct, day) + fPct(Math.abs(dpct),false) : ''}</span> today`   // amount signed, today's % arrowed
-      : dpct==null ? m2(h.ltp) : `<span class="${cls(dpct)}">${upDn(dpct)}${fPct(Math.abs(dpct),false)}</span> today`;
+      : hDetail ? `<span class="${cls(day)}">${day<0?'−':day>0?'+':''}${m(Math.round(Math.abs(day))).replace(/\.0+(?!\d)/,'')}${dpct!=null ? ' · ' + upDn(dpct, day) + fPct(Math.abs(dpct),false) : ''}</span>`   // amount signed, today's % arrowed (the arrow says it's today's move)
+      : dpct==null ? m2(h.ltp) : `<span class="${cls(dpct)}">${upDn(dpct)}${fPct(Math.abs(dpct),false)}</span>`;
     const right = hDetail ? `${ret>=0?'+':'−'}${m(Math.abs(ret))}${p==null?'':` · ${fPct(Math.abs(p),false)}`}`
       : p==null ? `${ret>=0?'+':'−'}${m(Math.abs(ret))}` : `${p>=0?'+':'−'}${fPct(Math.abs(p),false)}`;
     return `<div class="hcard hc1 tap" data-t="${esc(h.ticker)}" data-q="${esc(qWords(h.ticker, h.category, CAT_LABEL[h.category], h.platform))}">
@@ -4391,6 +4399,37 @@ function openSheet(t){
   document.addEventListener('touchend', end, { passive:true });
   document.addEventListener('touchcancel', end, { passive:true });
 })();
+/* The Profile card (a page shown as a card from the bottom): drag it down to close, like a sheet —
+   from anywhere once its content is scrolled to the top. Let go past a quarter of its height (or flick
+   it) and it closes; otherwise it springs back. */
+(function modalSwipe(){
+  let y0 = null, x0 = 0, dy = 0, t0 = 0, vert = null;
+  const pg = () => { const el = $('#page'); return el && !el.hidden && el.classList.contains('modal') && el.classList.contains('show') ? el : null; };
+  document.addEventListener('touchstart', e=>{
+    const el = pg(); if (!el || e.touches.length !== 1 || !el.contains(e.target)) return;
+    if (el.scrollTop > 0 || (e.target.closest && e.target.closest('input,textarea,select'))) return;
+    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; dy = 0; t0 = Date.now(); vert = null;
+  }, { passive:true });
+  document.addEventListener('touchmove', e=>{
+    if (y0 == null) return; const el = pg(); if (!el){ y0 = null; return; }
+    const my = e.touches[0].clientY - y0, mx = e.touches[0].clientX - x0;
+    if (vert == null && (Math.abs(my) > 6 || Math.abs(mx) > 6)) vert = Math.abs(my) > Math.abs(mx) && my > 0;
+    if (!vert){ if (vert === false) y0 = null; return; }
+    if (el.scrollTop > 0){ y0 = null; el.style.transform = ''; return; }
+    dy = Math.max(0, my);
+    if (e.cancelable) e.preventDefault();
+    el.style.transition = 'none'; el.style.transform = `translateY(${dy}px)`;
+  }, { passive:false });
+  const end = ()=>{
+    if (y0 == null) return; y0 = null; const el = pg(); if (!el) return;
+    const fast = dy > 40 && dy / Math.max(1, Date.now() - t0) > 0.6;
+    el.style.transition = '';
+    if (dy > el.offsetHeight * 0.25 || dy > 140 || fast) popPage();
+    else el.style.transform = '';
+  };
+  document.addEventListener('touchend', end, { passive:true });
+  document.addEventListener('touchcancel', end, { passive:true });
+})();
 function closeSheet(){ $('#backdrop').classList.remove('show'); $('#sheet').classList.remove('show');
   setTimeout(()=>{ $('#backdrop').hidden=true; $('#sheet').hidden=true; },280); }
 // Left blank on a sell, the FIFO script allocates it. Chosen, it is written to
@@ -5061,7 +5100,8 @@ function ptrScroller(){ return document.body.classList.contains('paged') ? $('#p
 function ptrAtTop(){ const sc = ptrScroller(); return sc ? sc.scrollTop <= 0 : window.scrollY <= 0; }
 function ptrBlocked(e){
   // not while a sheet, menu or lock screen is up, or when the drag starts in an input
-  return !!(document.querySelector('#sheet.show, #xsheet.show, .sheet.open, .sheet:not([hidden]) .panel, #lock:not([hidden])')
+  // (nor on the Profile card: dragging that down closes it)
+  return document.body.classList.contains('pmodal') || !!(document.querySelector('#sheet.show, #xsheet.show, .sheet.open, .sheet:not([hidden]) .panel, #lock:not([hidden])')
          || ($('#moreMenu') && !$('#moreMenu').hidden) || (e.target.closest && e.target.closest('input,textarea,select,.chart')));
 }
 function ptrPaint(px, armed){
@@ -5172,6 +5212,8 @@ const qtyFmt = n => n==null ? '—' : n>=1000 ? inr.format(Math.round(n)) : Stri
 // today's change: the same pill as Overview — signed amount · %
 // an arrow means "the market moved today": only today's % carries one; amounts keep + / −
 const upDn = (p, ref) => { const v = ref ?? p; return !v ? '' : `<span class="arrow">${v < 0 ? '▼' : '▲'}</span>`; };   // no move, no arrow
+// the same figure without the pill: coloured text, for lists where a pill per row is too heavy (Overview assets)
+const dayTxt = (v, m, p) => v==null ? '' : `<span class="dtxt ${cls(v)} num money">${v<0?'−':v>0?'+':''}${m(Math.round(Math.abs(v))).replace(/\.0+(?!\d)/,'')}${p!=null ? ' · ' + upDn(p, v) + fPct(Math.abs(p),false) : ''}</span>`;
 const dayPill = (v, m, p) => v==null ? '' : `<span class="pill sm dpill ${cls(v)} num money">${v<0?'−':v>0?'+':''}${m(Math.round(Math.abs(v))).replace(/\.0+(?!\d)/,'')}${p!=null ? ' · ' + upDn(p, v) + fPct(Math.abs(p),false) : ''}</span>`;
 const arrowAmt = (v, m) => v==null ? '—'
   : `<span class="${cls(v)}">${v>0?'+':v<0?'−':''}${m(Math.round(Math.abs(v))).replace(/\.0+(?!\d)/,'')}</span>`;   // change: whole units
@@ -5193,11 +5235,12 @@ function pushPage(p){
   pageStack.push(p);
   try{ history.pushState({ pg: pageStack.length }, ''); }catch(e){}
   const el = $('#page'), opening = el.hidden;
-  if (opening){ el.hidden = false; document.body.classList.add('paged'); el.classList.toggle('modal', p.kind==='profile'); document.body.classList.toggle('pmodal', p.kind==='profile'); }
+  if (opening){ el.hidden = false; document.body.classList.add('paged'); }
+  { const md = pageStack[0].kind==='profile'; el.classList.toggle('modal', md); document.body.classList.toggle('pmodal', md); }   // a card if the stack began at Profile — also right after one closed
   el.style.transition = ''; el.style.transform = '';
   renderPage();
   el.scrollTop = 0;                       // after unhiding — a hidden element ignores it
-  if (opening) requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));
+  if (opening || !el.classList.contains('show')) requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));   // also when reopened while the last one was still sliding away
 }
 // back button / edge swipe: step the history; popstate does the work
 let backFromButton = false;

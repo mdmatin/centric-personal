@@ -81,7 +81,11 @@ html{overscroll-behavior-y:none}
 body{padding-bottom:calc(172px + env(safe-area-inset-bottom));min-height:100vh;overscroll-behavior-y:none}
 button,input,select,textarea{font:inherit;letter-spacing:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none;padding:0}
-button:active{transform:scale(.97)}
+/* one press feel everywhere: anything you can tap shrinks a little while your finger is on it.
+   Uses the separate `scale` property, so it adds to an element's own transform instead of replacing it;
+   the :where() keeps it weakest, so a part that sets its own transition keeps it (and still shrinks). */
+:where(button, a[href], [role=button], .tap, label.chip, select, summary){transition:scale .14s cubic-bezier(.3,.7,.4,1)}
+:where(button, a[href], [role=button], .tap, label.chip, select, summary):not(:disabled):active{scale:.97}
 .num{font-variant-numeric:tabular-nums}
 .up{color:var(--up)} .down{color:var(--down)} .pend,.cbk .lr b.pend,.row .v.pend{color:var(--ink-3)} .muted{color:var(--ink-2)} .faint{color:var(--ink-3)}
 [hidden]{display:none!important}
@@ -110,7 +114,7 @@ html[data-theme=dark] .wbub .wbbg{fill:#16294a}html[data-theme=dark] .wbub .wbc{
 .wbub.new::after{content:"";position:absolute;inset:-1px;border-radius:50%;background:inherit;filter:blur(4px);opacity:.25;z-index:-1;animation:wbglow 3s ease-in-out infinite}
 @keyframes wbspin{to{transform:rotate(360deg)}}
 @keyframes wbglow{0%,100%{opacity:.12;transform:scale(.98)}50%{opacity:.32;transform:scale(1.02)}}
-.wbub:active{transform:scale(.93)}
+
 @media (prefers-reduced-motion:reduce){.wbub.new,.wbub.new img,.wbub.new::after{animation:none}}
 .nav .eyebrow{font-size:12px;font-weight:600;letter-spacing:.4px;color:var(--ink-3);text-transform:uppercase;line-height:1.3}
 .nav .eyebrow:empty{display:none}
@@ -350,7 +354,7 @@ main{padding:0}
 .culg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:13px;color:var(--ink-2)}
 .cusp{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;margin-top:14px}.cusp i{display:block}.cul2{justify-content:space-between;margin-top:6px}
 .culk{display:flex;align-items:center;gap:5px}.culk i{display:inline-block;width:12px;border-top:2px solid var(--blue)}.culk i.dash{border-top:2px dashed var(--ink-3);margin-left:6px}
-#nwDays{position:relative}.chvt{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--sunken);color:var(--ink-2)}.chvt svg{width:18px;height:18px}.chvt:active{opacity:.6}
+#nwDays{position:relative}.chvt{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--sunken);color:var(--ink-2)}.chvt svg{width:18px;height:18px}
 .cubw{position:relative;margin-top:14px;touch-action:pan-y}.dbars[data-cbars]:before{content:none}.cubw .tip{white-space:nowrap}.cubw .dbars{margin:0 0 6px}
 #nwCum{margin-top:14px;touch-action:pan-y}#nwCum .tip{white-space:nowrap}#chRanges{margin-top:12px}
 .culg b{white-space:nowrap}
@@ -865,7 +869,7 @@ html[data-theme=dark] .xpb > .xgrid.tiles .xsubrow, html[data-theme=dark] .xpb >
 .xpb:has(> .xkp){height:auto;max-height:none}  /* five rows of keys: the panel fits them */
 .xpb > .xkp{grid-auto-rows:48px}
 .xpb > .xkp button{min-height:0;height:48px}
-.xkp button:active{transform:scale(.95);filter:brightness(.9)}
+
 .xgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--hairline)}
 .xgrid > button,.xgrid > b{background:var(--canvas);min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 4px;font-size:15px;color:var(--ink);text-align:center}
 .xgrid > button i{font-style:normal;font-size:11px;color:var(--ink-3);line-height:1}
@@ -1064,7 +1068,7 @@ html[data-theme=dark] .dmenu{background:#2c2c2e;box-shadow:0 14px 40px rgba(0,0,
   position:relative;border-radius:18px;color:var(--ink-2);font-weight:560;z-index:1;
   transition:min-width .3s cubic-bezier(.32,.72,0,1)}
 .tabs button.on{color:var(--blue)}
-.tabs button:active{transform:none}
+.tabs button:active{scale:1}   /* the tab bar has its own lens */
 .tabs svg{width:23px;height:23px;opacity:.92}
 
 /* Minimised while reading down a list, restored on the first upward scroll.
@@ -1272,7 +1276,7 @@ input[type=date]::-webkit-datetime-edit{padding:0}
 .prof .grp{margin:0 16px;background:var(--canvas);border-radius:14px;overflow:hidden}
 .prof .r{display:flex;align-items:center;gap:12px;min-height:46px;padding:7px 14px;position:relative;width:100%;text-align:left}
 .prof .r + .r::before{content:"";position:absolute;top:0;right:0;left:56px;height:.5px;background:var(--hairline)}
-.prof [data-act]:active{background:var(--sunken)}
+
 .prof .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#fff;flex:0 0 auto}
 .prof .ic svg{width:18px;height:18px}
 .prof .lb{flex:1;min-width:0;font-size:16px;letter-spacing:-.2px}
@@ -1315,7 +1319,7 @@ html[data-theme=dark] .prof .sw.on,html[data-theme=dark] .liqsel .sw.on{backgrou
 .rec .in{color:var(--up)}
 .rec .rr{display:flex;align-items:center;gap:12px;padding:10px 14px;position:relative;width:100%;text-align:left}
 .rec .rr + .rr::before{content:"";position:absolute;top:0;right:0;left:58px;height:.5px;background:var(--hairline)}
-.rec .rr:active{background:var(--sunken)}
+
 .rec .rr .l{flex:1;min-width:0}.rec .rr .n{font-size:16px;letter-spacing:-.2px}
 .rec .rr .m{font-size:12.5px;color:var(--ink-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rec .rr .v{text-align:right;font-size:15.5px;font-weight:600;white-space:nowrap}
@@ -1352,7 +1356,7 @@ html[data-theme=dark] .recf .segw button.on{background:#636366}
 .xsug{display:flex;flex-direction:column;margin:-2px 0 6px;background:var(--canvas);border-radius:12px;box-shadow:0 0 0 .5px var(--hairline),0 6px 18px rgba(0,0,0,.08);overflow:hidden}
 .xsug button{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 14px;text-align:left;font-size:15px;color:var(--ink)}
 .xsug button + button{border-top:.5px solid var(--hairline)}
-.xsug button:active{background:var(--sunken)}
+
 .xsug span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .xsug small{flex:none;font-size:12px;color:var(--ink-2)}
 html[data-theme=dark] .xsug{background:#2c2c2e;box-shadow:0 0 0 .5px #3a3a3c,0 6px 18px rgba(0,0,0,.4)}
@@ -1562,7 +1566,7 @@ html[data-theme=dark] .bkpill .bk-ic.iq,html[data-theme=dark] .zqh .bk-ic.iq{bac
 .cbk .lr{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;font-size:15px}
 .cbk .lr+.lr{border-top:.5px solid var(--hairline)}.cbk .lr small{display:block;font-size:12px;color:var(--ink-2);margin-top:1px}
 .cbk .lr b{color:var(--up);font-weight:600}
-.cbk button.lr{width:100%;border:0;background:none;text-align:left;color:inherit;font:inherit;font-size:15px;cursor:pointer;-webkit-tap-highlight-color:transparent}.cbk button.lr:active{background:var(--sunken)}
+.cbk button.lr{width:100%;border:0;background:none;text-align:left;color:inherit;font:inherit;font-size:15px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .cbk .lr .cbch{margin-left:auto;margin-right:6px;display:grid;place-items:center;color:var(--ink-3)}.cbk .lr .cbch svg{width:14px;height:14px;transition:transform .2s}.cbk .lr .cbch.open svg{transform:rotate(180deg)}
 .cbk .lr.sub{padding-left:28px;font-size:14px}.cbk .lr.sub span{color:var(--ink-2)}
 .cbk .lst .more{display:block;width:100%;text-align:center;border:0;border-top:.5px solid var(--hairline);background:none;color:var(--blue);font-size:14px;padding:12px 0 10px;cursor:pointer}
@@ -1698,7 +1702,7 @@ em .arrow{font-size:.8em;margin-right:1px;color:inherit}
 .chart-tg{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--parchment);color:var(--ink-2);transition:background .2s,color .2s}
 .chart-tg svg{width:18px;height:18px}
 .chart-tg.on{background:rgba(0,102,204,.12);color:var(--blue)}
-.chart-tg:active{opacity:.6}
+
 .row.saving .v{opacity:.45;transition:opacity .2s}
 .kgrid span em span.arrow{color:inherit;font-size:.8em;letter-spacing:0}
 .kgrid.k2 span em,.hrow span em{font-style:normal;font-size:12.5px}
@@ -1772,7 +1776,7 @@ html[data-theme=dark] .asum .ccy button.on{background:#48484a}
 .bkin .tile svg{width:18px;height:18px}
 .bkin .row .n{font-size:15px}
 .bkin .row .r .v{font-size:15px}
-.hcard.tap:active,.row.tap:active{opacity:.6}
+
 
 /* ---------- Face ID lock ---------- */
 .lock{position:fixed;inset:0;z-index:40;background:var(--parchment);display:flex;flex-direction:column;align-items:center;
@@ -1788,7 +1792,7 @@ html[data-theme=dark] .asum .ccy button.on{background:#48484a}
 .menu{position:absolute;right:14px;top:calc(100% - 4px);z-index:30;min-width:232px;background:var(--canvas);border-radius:14px;
   box-shadow:0 10px 30px rgba(0,0,0,.16),0 0 0 1px rgba(0,0,0,.05);padding:6px;display:flex;flex-direction:column}
 .menu button{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:9px;font-size:16px;letter-spacing:-.3px;color:var(--ink);text-align:left}
-.menu button:active{background:var(--sunken)}
+
 .menu button svg{width:20px;height:20px;color:var(--blue);flex:none}
 .menu button.dim{color:var(--ink-2)} .menu button.dim svg{color:var(--ink-3)}
 .menu button + button{border-top:1px solid var(--hairline);border-radius:0}
@@ -2468,7 +2472,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-12c';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-12d';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -2788,7 +2792,7 @@ function renderHome(d){
         <div class="sb"><i style="width:${(sh*100).toFixed(1)}%;background:${TINT_INK[iconFor(a.name)[1]] || 'var(--ink-3)'}"></i></div><div class="ft">${aPill(a)}<span class="num">${Math.round(sh*100)}%</span></div></div>`; }).join('');
   } else { aEl.className = 'card tight';
   aEl.innerHTML = rows.map(a=>`
-    <div class="row platrow${/^EPF$/i.test(a.name) && epfD() ? ' tap" data-epf="1' : /^NPS$/i.test(a.name) && npsD() ? ' tap" data-nps="1' : ''}"${assetCatFor(a.name, d.holdings)?` data-acat="${esc(assetCatFor(a.name, d.holdings))}"`:''}>
+    <div class="row platrow${/^EPF$/i.test(a.name) && epfD() ? ' tap" data-epf="1' : /^NPS$/i.test(a.name) && npsD() ? ' tap" data-nps="1' : assetCatFor(a.name, d.holdings) ? ' tap' : ''}"${assetCatFor(a.name, d.holdings)?` data-acat="${esc(assetCatFor(a.name, d.holdings))}"`:''}>
       ${mark(a.name)}
       <div class="l"><div class="n">${esc(assetLbl(a.name))}</div></div>
       <div class="r"><div class="v num money">${fINR(a.value)}</div>${a.dayChange!=null

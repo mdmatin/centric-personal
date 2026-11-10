@@ -2467,7 +2467,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-11u';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-11v';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3140,7 +3140,7 @@ const ICONS = {
 // first match wins, so order matters: 'US Stocks' has to beat 'Stocks'
 const ICON_MAP = [
   [/^us\s*stock/i,                        ['us','us']],
-  [/^(stocks?|equit)/i,                   ['stocks','in']],
+  [/^(indian\s*)?(stocks?|equit)/i,        ['stocks','in']],
   [/^(mutual\s*fund|mf\b|sip)/i,          ['mf','mf']],
   [/^(gold|silver|sgb|bullion)/i,         ['gold','gd']],
   [/^crypto/i,                            ['crypto','cr']],
@@ -3229,8 +3229,8 @@ function bankMark(name){
 // Tickers with a file in /logos show it; everything else — gold, charges,
 // most ETFs and every mutual fund — shows its category icon, so a missing
 // logo reads as a deliberate style rather than a hole in the row.
-const LOGO_CAT = { 'US Stocks':'us', 'Stocks':'in', 'Crypto':'cr',
-                   'Mutual Fund':'mf', 'Gold/Silver':'gd', 'Charges':'ch' };
+const LOGO_CAT = { 'US Stocks':'us', 'Indian Stocks':'in', 'Crypto':'cr',
+                   'Mutual Funds':'mf', 'Gold':'gd', 'Charges':'ch' };
 const logoSafe = t => String(t||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 function tickerTile(t){
   const cls = LOGO_CAT[t.category] || 'in';
@@ -3264,16 +3264,18 @@ function txnRow(t, showDate, noPlatform){
    One row per ticker from Master List, filtered by category. Every figure on a
    row is in the currency the sheet holds it in — dollars for US stocks — and
    the rupee conversion is used only to rank a mixed list and total it. */
-const CAT_ORDER = ['US Stocks','Stocks','Gold/Silver','Mutual Fund','Crypto'];
-const CAT_LABEL = { 'Stocks':'Indian stocks', 'US Stocks':'US stocks', 'Gold/Silver':'Gold/Silver', 'Mutual Fund':'Mutual funds' };
+const CAT_ORDER = ['US Stocks','Indian Stocks','Gold','Mutual Funds','Crypto'];
+// one name everywhere (Nov 2026): the sheet, the scripts and the app all say US Stocks, Indian Stocks,
+// Mutual Funds, Gold, Crypto, NPS — so categories show exactly as the sheet names them
+const CAT_LABEL = {};
 // the Overview asset rows come named from the Net Worth sheet; show them with the same names
-const ASSET_LBL = { 'Stocks':'Indian stocks', 'US Stocks':'US stocks', 'Mutual Funds':'Mutual funds', 'Mutual Fund':'Mutual funds', 'Gold':'Gold/Silver' }, assetLbl = n => ASSET_LBL[n] || n;
+const ASSET_LBL = {}, assetLbl = n => ASSET_LBL[n] || n;
 let assetCat = 'US Stocks';   // the filter the tab opens on
 // Net Worth row name → holdings category, only when that category has holdings
 function assetCatFor(name, holdings){
   const n = String(name||'').toLowerCase();
-  const c = /^us\b|us stock/.test(n) ? 'US Stocks' : /^(indian )?stock|^equit/.test(n) ? 'Stocks'
-          : /gold|silver/.test(n) ? 'Gold/Silver' : /mutual/.test(n) ? 'Mutual Fund' : /crypto/.test(n) ? 'Crypto' : null;
+  const c = /^us\b|us stock/.test(n) ? 'US Stocks' : /^(indian )?stock|^equit/.test(n) ? 'Indian Stocks'
+          : /gold|silver/.test(n) ? 'Gold' : /mutual/.test(n) ? 'Mutual Funds' : /crypto/.test(n) ? 'Crypto' : null;
   return c && (holdings||[]).some(h=>h.category===c) ? c : null;
 }
 function openAssetCat(cat){
@@ -3398,7 +3400,7 @@ function renderAssets(holdings, usdInr){
 
   const capOf = h => { const x = String(h.sub||'').toLowerCase(); return /small/.test(x) ? 'Smallcap' : /mid/.test(x) ? 'Midcap' : /large/.test(x) ? 'Largecap' : /debt|liquid/.test(x) ? 'Debt' : ''; };
   // Indian stocks on a market-cap tab: the same card as All, for that cap's holdings alone
-  const capSel = assetCat==='Stocks' && ['Largecap','Smallcap','Midcap','Debt'].includes(capTab) ? capTab : null;
+  const capSel = assetCat==='Indian Stocks' && ['Largecap','Smallcap','Midcap','Debt'].includes(capTab) ? capTab : null;
   // summary of whatever the chip shows — in dollars for US alone, otherwise rupees
   { const el = $('#assetSum');
     if (!rows.length){ el.hidden = true; }
@@ -3424,7 +3426,7 @@ function renderAssets(holdings, usdInr){
       const dp = useNW && nwRow.dayChangePct!=null ? nwRow.dayChangePct : day!=null && (total-day) ? day/(total-day) : null;
       const usdOut = native && !inrMode;
       const mo = usdOut ? (v => usd.format(v)) : (v => fINR(v));
-      const xr = capSel ? (catXirr['Stocks|'+capSel] ?? null) : nwRow && nwRow.xirr!=null ? nwRow.xirr : null;
+      const xr = capSel ? (catXirr['Indian Stocks|'+capSel] ?? null) : nwRow && nwRow.xirr!=null ? nwRow.xirr : null;
       el.hidden = false;
       // short side figures: dollars in K / M, rupees in K / L / Cr
       const dp2 = (n, d) => String(+n.toFixed(d));
@@ -3435,7 +3437,7 @@ function renderAssets(holdings, usdInr){
       const full = v => usdOut ? (v<0?'−':'') + usd2.format(Math.abs(v)) : fINR2(v);   // the exact amount behind a short figure
       // the logs end at the last morning snapshot: add today's point from the holdings
       // as they stand, so the line ends where the card does (new buys included)
-      const ck0 = capSel ? 'C:Stocks|' + capSel : assetChartKey(assetCat, native && !inrMode), ck = 'T:' + ck0, base = histCache[ck0];
+      const ck0 = capSel ? 'C:Indian Stocks|' + capSel : assetChartKey(assetCat, native && !inrMode), ck = 'T:' + ck0, base = histCache[ck0];
       if (base && base.pts && base.pts.length){
         const today = new Date().toLocaleDateString('en-CA'), last = base.pts[base.pts.length-1];
         const live = { date: today, invested: cr.reduce((s,h)=>s+(native && !inrMode ? (h.invested||0) : invInr(h)),0), value: csum * k };
@@ -3455,14 +3457,14 @@ function renderAssets(holdings, usdInr){
       const tg = $('#assetSum [data-loadchart]');
       if (tg) tg.onclick = ()=>{ assetChart = !assetChart; save('inv.assetChart', assetChart); renderAssets(all, usdInr); };
       $$('#assetSum [data-hr]').forEach(b=>b.onclick=()=>{ histRange=b.dataset.hr; renderAssets(all, usdInr); });
-      if (capSel) loadCategory('Stocks|' + capSel);       // its chart and its XIRR come from the script
+      if (capSel) loadCategory('Indian Stocks|' + capSel);       // its chart and its XIRR come from the script
       if (assetChart){ if (!capSel) loadCategory(assetCat); drawHist(ck, native && !inrMode, 'assetChart'); }
     }
   }
 
   // Indian stocks: tabs by market cap (the Master List's Sub-Category), each with its
   // figures from the Breakdown tab's Asset Level table, then only those holdings
-  const capOn = assetCat==='Stocks', CAPS = [['All','All'],['Largecap','Largecap'],['Smallcap','Smallcap'],['Midcap','Midcap'],['Debt','Liquid']];
+  const capOn = assetCat==='Indian Stocks', CAPS = [['All','All'],['Largecap','Largecap'],['Smallcap','Smallcap'],['Midcap','Midcap'],['Debt','Liquid']];
   let list = rows;
   if (capOn){
     if (!CAPS.some(c=>c[0]===capTab)) capTab = 'All';
@@ -3488,7 +3490,7 @@ function renderAssets(holdings, usdInr){
         <div class="hrow"><span>Realised</span><b class="${cls(st.realized)}">${sp(st.realized)}</b></div>
         <div class="hrow"><span>Total P&amp;L${pc(tot)}</span><b class="${cls(tot)}">${sp(tot)}</b></div>
         <div class="hrow"><span>Holdings</span><b>${n}</b></div>
-        <div class="hrow"><span>Share of Indian stocks</span><b>${all.value ? fPct(st.value/all.value,false) : '—'}</b></div>
+        <div class="hrow"><span>Share of Indian Stocks</span><b>${all.value ? fPct(st.value/all.value,false) : '—'}</b></div>
         <div class="hrow"><span>Share of portfolio</span><b>${st.alloc!=null ? fPct(st.alloc,false) : '—'}</b></div></div><button class="capmore2 ${capOpen?'on':''}" data-capmore aria-expanded="${capOpen}">${capOpen ? 'Less' : 'More'}${chev('M6 9l6 6 6-6')}</button>`); }
     const cm = $('#assetSum [data-capmore]'); if (cm) cm.onclick = ()=>{ capOpen = !capOpen; renderAssets(all0, usdInr); };
   } else $('#capWrap').innerHTML = '';
@@ -4659,7 +4661,7 @@ function formData(){
 // A trade from the queue, ready to post. The bucket comes from the form, so
 // whatever is selected applies to the whole note — the same rule the Shortcut uses.
 function tradeData(t){
-  return { date:t.date, ticker:t.ticker, category:t.category||'Stocks', order:t.order,
+  return { date:t.date, ticker:t.ticker, category:t.category||'Indian Stocks', order:t.order,
     platform:t.platform||'Kite', amount:t.amount, notional:'', volume:t.volume, price:t.price,
     dp:(t.dp==null?'':t.dp), fees:(t.fees==null?'':t.fees), remark:'',
     bucket: $('#fBucket').value.trim() };
@@ -7235,13 +7237,13 @@ function taxTabs(p, Y){
       ${inc.interest ? row('Bank interest', fINR(inc.interest), 'Interests tab') : ''}
       ${inc.usDiv ? row('US dividends', fINR(inc.usDiv), '$' + inc.usDivUsd + ' gross · ' + fINR(inc.usTax) + ' withheld in the US') : ''}
       ${R.other - inc.interest - inc.usDiv > 0.5 ? row('Indian dividends / other', fINR(R.other - inc.interest - inc.usDiv), 'From AIS') : ''}
-      ${R.slabCg ? row('Short-term gains at slab', fINR(R.slabCg), 'US stocks, gold, debt under their holding period') : ''}
+      ${R.slabCg ? row('Short-term gains at slab', fINR(R.slabCg), 'US Stocks, Gold, debt under their holding period') : ''}
       ${R.dedTotal ? row('Deductions', neg(R.dedTotal), Object.keys(R.ded).filter(k=>R.ded[k]).map(k=>({c80:'80C',nps1b:'NPS 80CCD(1B)',d80:'80D',tta:'80TTA',g80:'80G'})[k] + ' ' + fINR(R.ded[k])).join(' · '), 'sub') : ''}
       ${row('Taxable income', fINR(R.normal), '', 'tot')}</div>
       <div class="cmhead taxsec" style="--sec:#ea4335"><h3>Tax</h3><span class="num money">${fINR(R.tax)}</span></div><div class="card tight">
       ${row('On income', fINR(R.tNormal), 'Slab rates')}${R.rebate ? row('Rebate', neg(R.rebate), 'Income up to ₹12L', 'sub') : ''}
       ${R.tEqST ? row('Short-term equity 20%', fINR(R.tEqST)) : ''}${R.tEqLT ? row('Long-term equity 12.5%', fINR(R.tEqLT), 'Above the ₹1.25L exemption') : ''}
-      ${R.tOtherLT ? row('Other long-term 12.5%', fINR(R.tOtherLT), 'US stocks, gold, debt') : ''}${R.tCrypto ? row('Crypto 30%', fINR(R.tCrypto)) : ''}
+      ${R.tOtherLT ? row('Other long-term 12.5%', fINR(R.tOtherLT), 'US Stocks, Gold, debt') : ''}${R.tCrypto ? row('Crypto 30%', fINR(R.tCrypto)) : ''}
       ${R.surcharge ? row('Surcharge', fINR(R.surcharge)) : ''}${row('Cess 4%', fINR(R.cess))}${row('Total tax', fINR(R.tax), '', 'tot')}</div>`;
   } else if (t==='g'){
     const bc = g.byClass || {}, keys = Object.keys(bc).sort((a,b)=>Math.abs(bc[b].lt + bc[b].st) - Math.abs(bc[a].lt + bc[a].st));
@@ -8135,7 +8137,7 @@ function ziPageBody(p){
     <div class="card tight zsrc">${row('Banks', b.cols.length + ' accounts · from the quarterly entries', fINR(I.sources.banks))}
       <div class="zbk">${per.map(([c,v])=>`<div class="hrow"><span>${esc(ziLabel(c))}</span><b class="num money">${fINR(v)}</b></div>`).join('')}</div>
       <button class="zmore zadd" data-ziq="${esc(ziAddQ())}">+ Add ${esc(qLabel(ziAddQ()).replace(/ \d+$/,''))} interest</button>
-      ${row('Stocks', '', fINR(I.sources.stocks))}${row('Mutual funds', '', fINR(I.sources.mf))}${row('Dividends', '', fINR(I.sources.dividends))}</div>
+      ${row('Indian Stocks', '', fINR(I.sources.stocks))}${row('Mutual Funds', '', fINR(I.sources.mf))}${row('Dividends', '', fINR(I.sources.dividends))}</div>
     <div class="sechead"><h2>Interest given</h2><span class="zsub">Donation · Interest</span></div>
     <div class="card tight">${I.pays.length ? I.pays.slice(0, p.allI ? 999 : 8).map(pay).join('') : '<div class="empty">Nothing given yet</div>'}
       ${I.pays.length > 8 && !p.allI ? `<button class="zmore" data-zall="I">Show all ${I.pays.length}</button>` : ''}</div>`;
@@ -8408,7 +8410,7 @@ function xCatsByUse(){ return xCats(); }
 const xIsRefund = () => xMode==='income' && xType===XREFUND;
 const xIsLiq = () => xMode==='income' && xType===XLIQ;
 const invCat = () => xCats().find(isInvest) || 'Investment';
-const liqSubs = () => { const L = xSubs(invCat()); return L.length ? L : ['Stocks','Mutual Funds','Gold','Crypto','US Stocks','NPS']; };
+const liqSubs = () => { const L = xSubs(invCat()); return L.length ? L : ['Indian Stocks','Mutual Funds','Gold','Crypto','US Stocks','NPS']; };
 // the Kite wallet on Net Worth, when it holds something a liquidation could come out of
 const kiteWallet = () => { const w = ((D && D.data && D.data.netWorth && D.data.netWorth.wallets) || []).find(x=>x.key==='kite'); return w && !w.formula && w.amount > 0 ? w : null; };
 const xTitle = () => (xEditing ? 'Edit ' : 'New ') + (xMode==='expense' ? 'expense' : xMode==='transfer' ? 'transfer' : 'income');
@@ -8967,7 +8969,7 @@ async function saveXSheet(){
   const note = xNoteV.trim();
   if (xMode==='expense'){
     if (!xCat) return xErr('Pick a category.', 'category', 2);
-    if (isInvest(xCat) && !xSub && xSubs(xCat).length) return xErr('Pick what you invested in (US Stocks, Stocks…).', 'category', 2);   // the subcategory decides where it goes (a US Stocks deposit, Kite…)
+    if (isInvest(xCat) && !xSub && xSubs(xCat).length) return xErr('Pick what you invested in (US Stocks, Indian Stocks…).', 'category', 2);   // the subcategory decides where it goes (a US Stocks deposit, Kite…)
     if (!xAcc) return xErr('Pick what paid for it.', 'account', 3);
     if (!xEditing && (xSplitOn || xCbOn)){
       const part = xSplitOn ? Math.round((Number(numPlain(xSplitV))||0)*100)/100 : 0, cb = xCbOn ? Math.round((Number(numPlain(xCbV))||0)*100)/100 : 0;
@@ -9023,7 +9025,7 @@ async function saveMove(kind, rec, was){
     if (t!=null && t===t0){ const nt = Math.round((t + rec.amount - was.amount)*100)/100, fx = v => String(v||'').replace(/(total\s*)₹?\s*[\d,]+(?:\.\d+)?/i, '$1' + fINR(nt));
       rec.note = fx(rec.note); if (rec.remark!=null) rec.remark = fx(rec.remark); }
   }
-  const draftDone = was ? null : xDraftPend, recDone = was ? null : xRecPend, kiteDone = !was && xKitePay && /^stocks?$/i.test(rec.sub||'');   // only a Stocks liquidation comes out of the Kite wallet
+  const draftDone = was ? null : xDraftPend, recDone = was ? null : xRecPend, kiteDone = !was && xKitePay && /^(indian )?stocks?$/i.test(rec.sub||'');   // only a Stocks liquidation comes out of the Kite wallet
   const d = xd(), key = kind==='expense' ? 'entries' : kind==='income' ? 'incomes' : 'transfers';
   const list = d[key] = d[key] || [];
   let tmp = null, prev = null;
@@ -9714,7 +9716,7 @@ function wireRecForm(p){
   $('#page [data-rsave]').onclick = async ()=>{
     keep();
     const amt = Number(f.amount)||0, name = String(f.name||'').trim();
-    const err = !(amt>0) ? 'Enter an amount.' : !name ? 'Give it a name.' : f.kind==='expense' && !f.cat ? 'Pick a category.' : f.kind==='expense' && isInvest(f.cat) && !f.sub && xSubs(f.cat).length ? 'Pick what you invested in (US Stocks, Stocks…).'
+    const err = !(amt>0) ? 'Enter an amount.' : !name ? 'Give it a name.' : f.kind==='expense' && !f.cat ? 'Pick a category.' : f.kind==='expense' && isInvest(f.cat) && !f.sub && xSubs(f.cat).length ? 'Pick what you invested in (US Stocks, Indian Stocks…).'
       : f.kind==='income' && !f.cat ? 'Pick the income type.' : !f.account ? 'Pick an account.'
       : f.kind==='transfer' && (!f.to || f.to===f.account) ? 'Pick a different To account.' : f.end && f.start && f.end < f.start ? 'It ends before it starts.' : '';
     if (err){ p.err = err; rer(); return; }
@@ -10034,7 +10036,7 @@ function rvCompose(p){
     }
     if (!(amount > 0)) return bad('Enter an amount.', 'amt');
     if (!date) return bad('Pick a date.');
-    if (s.kind==='expense'){ if (!s.cat) return bad('Pick a category.'); if (isInvest(s.cat) && !s.sub && xSubs(s.cat).length) return bad('Pick what you invested in (US Stocks, Stocks…).'); if (!s.acc) return bad('Pick what paid for it.');
+    if (s.kind==='expense'){ if (!s.cat) return bad('Pick a category.'); if (isInvest(s.cat) && !s.sub && xSubs(s.cat).length) return bad('Pick what you invested in (US Stocks, Indian Stocks…).'); if (!s.acc) return bad('Pick what paid for it.');
       rvClose(); return saveMove('expense', { date, account:s.acc, category:s.cat, sub:s.sub, note, desc:'', amount }, null); }
     if (s.kind==='tax'){ if (!s.acc) return bad('Pick the account it came from.');
       const cat = xCats().find(c=>/bills/i.test(c)) || 'Bills/Utility';

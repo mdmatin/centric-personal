@@ -2468,7 +2468,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-12a';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-12c';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -6315,7 +6315,7 @@ function spMonthlyHtml(){
     const pct = Math.round(it.v/total*100), col = spIO==='exp' ? catCol(it.k) : 'var(--up)';
     const tap = spIO==='exp' ? `class="row tap prow" data-xcat="${esc(it.k)}" data-ymc="${ym}"` : `class="row tap prow" data-icat="${esc(it.k)}" data-ymc="${ym}"`;
     // same tile as Activity / Budget: a category's own icon, or the income arrow
-    return `<div ${tap}>${spIO==='exp' ? xTile(it.k) : moveTile('income')}
+    return `<div ${tap}>${spIO==='exp' ? xTile(it.k) : xtTile(it.k)}
       <div class="l"><div class="n">${esc(it.k)}</div><div class="tbar" style="--c:${col}"><i style="width:${Math.max(2, it.v/top*100).toFixed(1)}%"></i></div></div><div class="r"><div class="v num money">${fINR2(it.v)}</div><div class="s">${pct<1?'<1':pct}%</div></div></div>`;
   }).join('');
   // a category whose refunds outweigh its spending nets below zero: it can't be
@@ -6672,20 +6672,13 @@ function isRecEntry(e, kind){
 //           add the date at the end.
 const moveK = m => m.kind==='expense' || m.k==='expense' ? (m.e.amount<0 ? (isInvest(m.e.category)?'lq':'rf') : (isInvest(m.e.category)?'iv':'ex'))
   : (m.kind||m.k)==='income' ? (m.e.type==='Adjustment' ? 'adj' : 'in') : 'tr';
-// main icons that say WHAT it was, so they never repeat the small marker (which says the kind):
-// money in by its type, an investment by its asset, a transfer by the other account, an adjustment as sliders
-const IN_IC = [
-  [/salary|wage|payroll/i,      'in', 'M4 8h16v11H4zM9 8V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M4 13h16'],          // briefcase
-  [/freelanc|consult|fees?/i,   'us', 'M5 6h14v9H5zM3 18h18'],                                                     // laptop
-  [/interest/i,                 'gd', 'M19 5L5 19M7 9.2a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4M17 19.2a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4'],   // %
-  [/cash\s*back|reward/i,       'in', 'M20.5 12a8.5 8.5 0 1 1-2.5-6M20.5 4v4h-4M12 8v8M9.5 10.5c0-1 1.1-1.5 2.5-1.5s2.5.6 2.5 1.6-1.1 1.4-2.5 1.4-2.5.5-2.5 1.5 1.1 1.5 2.5 1.5 2.5-.5 2.5-1.5'],   // coin coming back
-  [/dividend/i,                 'mf', 'M5 7c0 1.1 3.1 2 7 2s7-.9 7-2-3.1-2-7-2-7 .9-7 2zM5 7v5c0 1.1 3.1 2 7 2s7-.9 7-2V7M5 12v5c0 1.1 3.1 2 7 2s7-.9 7-2v-5'],   // coins
-  [/gift|family|mom|dad/i,      'cr', 'M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-2-3-5-3-5-1s3 1 5 1c2 0 5 1 5-1s-3-2-5 1'],   // gift
-];
-const IN_OTHER = 'M3 8h15a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8zM3 8l3-3h10M16 14h4';   // wallet
+// main icons that say WHAT it was, so they never repeat the small marker (which says the kind) — and always
+// the icon the app already uses for that thing: money in by its income type (the add form's icons), an
+// investment by its asset (as in Holdings), a transfer by the other account (as in Accounts), an
+// adjustment by the pencil of Set balance (which is what makes one)
 const svgTile = (tint, d) => `<div class="tile ${tint}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg></div>`;
-const incTile = t => { const m = IN_IC.find(([re])=>re.test(t||'')); return m ? svgTile(m[1], m[2]) : svgTile('in', IN_OTHER); };
-const ADJ_IC = 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4';   // sliders
+const incTile = t => xtTile(t);
+const ADJ_IC = 'M4 20h4L19 9l-4-4L4 16z';   // pencil, as on Set balance
 // an investment or a liquidation: the asset it went into (US Stocks, Gold…), else the category's own
 const invTile = e => { const l = e.sub || e.desc || ''; return l && ICON_MAP.some(([re])=>re.test(l)) ? mark(l) : xTile(e.category); };
 function rowBits(k, e, o){
@@ -6838,11 +6831,11 @@ function inccatBody(p){
       <button data-pym="-1" aria-label="Previous month">${chev('M15 5l-7 7 7 7')}</button>
       <b data-mpick role="button">${esc(ymLabel(ym))}<svg class="mcaret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></b>
       <button data-pym="1" aria-label="Next month" ${ym>=ymNow()?'disabled':''}>${chev('M9 5l7 7-7 7')}</button></div>`;
-  const rows = list.slice().sort((a,b)=>a.date<b.date?1:-1).map(e=>`<button class="row" data-mvi="${e.row}">${moveTile('income')}
+  const rows = list.slice().sort((a,b)=>a.date<b.date?1:-1).map(e=>`<button class="row" data-mvi="${e.row}">${xtTile(e.type)}
       <div class="l"><div class="n">${esc(e.source || e.type || 'Income')}</div><div class="m">${[e.account, e.remark, fDate(e.date)].filter(Boolean).map(esc).join(' · ')}</div></div>
       <div class="r"><div class="v num money up">${fINR2(e.amount)}</div>${e.tax?`<div class="s num money">tax ${fINR2(e.tax)}</div>`:''}</div></button>`).join('');
   return sw + `<div class="card pg-card pg-hero">
-      <div class="pg-id">${moveTile('income')}<div class="grow"><div class="t">${esc(t)}</div><div class="s">${esc(ymLabel(ym))} · ${list.length} entr${list.length===1?'y':'ies'}</div></div>${catStep(p)}</div>
+      <div class="pg-id">${xtTile(t)}<div class="grow"><div class="t">${esc(t)}</div><div class="s">${esc(ymLabel(ym))} · ${list.length} entr${list.length===1?'y':'ies'}</div></div>${catStep(p)}</div>
       <div class="pg-big num money">${bigAmt(fINR2(total))}</div>
       <div class="xbud num money" style="pointer-events:none">Last 12 months ${fINR2(yearTot)}</div>
       ${chart}
@@ -8770,7 +8763,7 @@ function xAccGrid(names, on, cardsFirst){
 // Income type as icon pills, grouped like the accounts
 const XT_ICON = {
   salary:  ['M3.5 8h17v11.5h-17zM8.5 8V6a1.5 1.5 0 0 1 1.5-1.5h4A1.5 1.5 0 0 1 15.5 6v2M3.5 13h17M11 13v2h2v-2', 'us'],   /* briefcase (the mountain is travel's) */ freelanc: [XI.tv, 'cr'], interest: ['M18 6L6 18M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM16 17.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z', 'lq'],
-  cashback:[ 'M3 6.5h18v11H3zM3 10.5h18M7 14.5h3', 'mf'], dividend: [XI.leaf, 'in'], gift: [XI.gift, 'gd'],
+  cashback:[ 'M12 2.8L14.91 4.98L18.51 5.49L19.02 9.09L21.2 12L19.02 14.91L18.51 18.51L14.91 19.02L12 21.2L9.09 19.02L5.49 18.51L4.98 14.91L2.8 12L4.98 9.09L5.49 5.49L9.09 4.98zM14.6 9.4L9.4 14.6M9.6 9a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2zM14.4 13.8a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2z', 'mf'],   /* an even 8-point offer badge with % */ dividend: [XI.leaf, 'in'], gift: [XI.gift, 'gd'],
   liquid:  ['M3 7l6 6 4-4 8 8M14 17h7v-7', 'rt'], refund: ['M9 14l-5-5 5-5M4 9h11a5 5 0 0 1 0 10h-3', 'bk'], other: ['M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1-5.1-1.9 5.1-1.9zM18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z', 'pk'] };   // other: a sparkle
 const xtKey = t => { const s = String(t||'').toLowerCase(); return Object.keys(XT_ICON).find(k=>s.startsWith(k) || (k==='gift' && /gift|transfer/.test(s)) || (k==='liquid' && /liquid/.test(s))) || 'other'; };
 const xtTile = t => { const [d,tint] = XT_ICON[xtKey(t)]; return `<div class="tile ${tint}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg></div>`; };
@@ -9643,7 +9636,7 @@ function recDetailBody(p){
   const tr = x => `<tr class="${x.st}"><td>${esc(new Date(x.date+'T00:00:00').toLocaleDateString('en-GB',{ day:'numeric', month:'short', year:'numeric' }))}</td><td class="num money">${fINR2(x.amt)}</td><td>${pill(x.st)}</td></tr>`;
   const list = past.slice().reverse().slice(0, 12).reverse().concat(up);
   const posted = past.filter(x=>x.st==='posted'), tot = posted.reduce((a,x)=>a+x.amt, 0);
-  const tile = r.kind==='transfer' ? moveTile('transfer') : r.kind==='income' ? moveTile('income') : xTile(r.cat);
+  const tile = r.kind==='transfer' ? nameMark(r.to) : r.kind==='income' ? xtTile(r.cat) : xTile(r.cat);
   return `<div class="card pg-card rdhero"><div class="pg-id">${tile}<div class="grow"><div class="t">${esc(r.name)}</div><div class="s"><span class="num money">${fINR2(r.amount)}</span> · ${esc(recMeta(r))}</div></div></div>
       <div class="spstats lcr"><div><span>Status</span><b>${esc(r.active ? (r.auto ? 'Automatic' : 'Confirm each') : 'Paused')}</b></div><div><span>Posted</span><b class="num">${posted.length}×</b></div><div><span>Total</span><b class="num money">${tipS(tot, fKL(tot))}</b></div></div></div>
     <div class="cmhead"><h3>Schedule</h3><span>${esc(r.end ? 'until ' + ymLabel(r.end) : 'every month')}</span></div>
@@ -9691,7 +9684,7 @@ function recurringBody(){
   const out = on.filter(r=>r.kind==='expense').reduce((a,r)=>a+r.amount,0), inn = on.filter(r=>r.kind==='income').reduce((a,r)=>a+r.amount,0);
   const grp = (k, t) => { const xs = L.filter(r=>r.kind===k); if (!xs.length) return '';
     return `<h3>${t}</h3><div class="grp">${xs.map(r=>`<button class="rr ${r.active?'':'off'}" data-rec="${esc(r.id)}">
-      ${k==='transfer' ? moveTile('transfer') : k==='income' ? moveTile('income') : xTile(r.cat)}
+      ${k==='transfer' ? nameMark(r.to) : k==='income' ? xtTile(r.cat) : xTile(r.cat)}
       <div class="l"><div class="n">${esc(r.name)}</div><div class="m">${esc(recMeta(r))}</div></div>
       <div class="v ${k==='income'?'in':''}">${fINR2(r.amount)}<small>${esc(recStatus(r))}</small></div></button>`).join('')}</div>`; };
   return `<div class="prof rec">
@@ -9806,7 +9799,7 @@ function recDueHtml(){
   if (spMonth !== ymNow()) return '';
   const due = recDue(); if (!due.length) return '';
   return `<div class="sechead"><h2>Due</h2><span class="cnt">${due.length}</span></div><div class="card tight recdue">${due.map(x=>{ const r = x.r;
-    return `<div class="row">${r.kind==='transfer' ? moveTile('transfer') : r.kind==='income' ? moveTile('income') : xTile(r.cat)}
+    return `<div class="row">${r.kind==='transfer' ? nameMark(r.to) : r.kind==='income' ? xtTile(r.cat) : xTile(r.cat)}
       <div class="l"><div class="n">${esc(r.name)}</div><div class="m">${esc(dayLbl(x.date))} · ${fINR2(r.amount)}</div></div>
       <div class="rdbtn"><button data-rskip="${esc(r.id)}">Skip</button><button class="ok" data-rok="${esc(r.id)}">Add</button></div></div>`; }).join('')}</div>`;
 }

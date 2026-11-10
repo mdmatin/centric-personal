@@ -2480,7 +2480,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-12h';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-12i';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -4430,6 +4430,23 @@ function openSheet(t){
   document.addEventListener('touchend', end, { passive:true });
   document.addEventListener('touchcancel', end, { passive:true });
 })();
+/* iPhone only raises the keyboard when an input is focused inside the tap itself, and it refuses an input
+   that was only just drawn (the editor these taps open is rendered in the same moment). So for every tap that
+   opens a field, focus a tiny always-present input first — the keyboard comes up on it — and the editor's own
+   focus() then moves it to the real field. If the tap didn't open one (it closed an editor), it lets go again. */
+const KB_OPEN = '#wallets .row.tap:not([data-acc]), #banks .row.tap:not([data-acc]), #construction .row.tap:not([data-acc]), #cfOther .row.tap:not([data-acc]),'
+  + ' [data-hsrch], [data-vedit], [data-cbadd], [data-casrch], [data-actsrch], [data-bedit], [data-bcat], [data-setbal], #spBody .search';
+const kbProxy = (()=>{ let px = null; return () => {
+  if (!px){ px = document.createElement('input'); px.type = 'text'; px.inputMode = 'decimal'; px.tabIndex = -1; px.setAttribute('aria-hidden','true');
+    px.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;border:0;padding:0;font-size:16px;pointer-events:none;z-index:-1';
+    document.body.appendChild(px); }
+  return px; }; })();
+document.addEventListener('click', e=>{
+  const t = e.target.closest && e.target.closest(KB_OPEN); if (!t) return;
+  if (e.target.closest('input,textarea,select,.ed,.xbed,.pg-ed')) return;      // a tap inside an open editor keeps its own field
+  const px = kbProxy(); px.focus({ preventScroll:true });
+  setTimeout(()=>{ if (document.activeElement===px) px.blur(); }, 0);       // nothing took the focus over: no field opened
+}, true);
 function closeSheet(){ $('#backdrop').classList.remove('show'); $('#sheet').classList.remove('show');
   setTimeout(()=>{ $('#backdrop').hidden=true; $('#sheet').hidden=true; },280); }
 // Left blank on a sell, the FIFO script allocates it. Chosen, it is written to
@@ -10119,7 +10136,7 @@ function rvCompose(p){
     const tk = sh.querySelector('input[data-k="tk"]'); if (tk) tk.onchange = ()=>{ s.tk = tk.value.trim().toUpperCase(); const t = ((D&&D.data&&D.data.transactions)||[]).find(x=>x.ticker===s.tk); if (t){ s.tcat = t.category; s.plat = t.platform; } paint(); };
     sh.querySelector('[data-x]').onclick = rvClose;
     sh.querySelector('[data-ok]').onclick = rvKeep;
-    const f = sh.querySelector('input[data-k="amt"],input[data-k="qty"]'); if (f && !f.value) setTimeout(()=>f.focus({ preventScroll:true }), 330);
+    const f = sh.querySelector('input[data-k="amt"],input[data-k="qty"]'); if (f && !f.value){ kbProxy().focus({ preventScroll:true }); setTimeout(()=>f.focus({ preventScroll:true }), 330); }   // keyboard up inside the tap, then onto the field once the sheet is in
   }
   const bad = (m, k) => { const w = $('#rvWhy'); w.className = 'rv-why err'; w.textContent = m; const i = k && rvSh().querySelector(`[data-k="${k}"]`); if (i && i.focus) i.focus(); };
   function rvKeep(){
@@ -10434,7 +10451,7 @@ function dlDraw(){
   if (!isDial() || !dlBuilt) return;
   $('#dlLcd').innerHTML = dlLcd() + (dl.edit ? `<input id="dlIn" value="${esc(dl.edit==='note'?dl.note:dl.edit==='src'?dl.src:dl.tk)}" placeholder="${dl.edit==='tk'?'TICKER':dl.edit==='src'?'WHO PAID':'NOTE'}" autocomplete="off" ${dl.edit==='tk'?'list="tickers" autocapitalize="characters"':''}>` : '');
   const m = DL_MODES[dl.mode];
-  if (dl.edit){ const i = $('#dlIn'); i.focus(); const done = () => { const v = i.value.trim(); if (dl.edit==='note') dl.note = v; else if (dl.edit==='src') dl.src = v; else { dl.tk = v.toUpperCase(); } dl.edit = null; dlDraw(); };
+  if (dl.edit){ const i = $('#dlIn'); kbProxy().focus({ preventScroll:true }); i.focus(); const done = () => { const v = i.value.trim(); if (dl.edit==='note') dl.note = v; else if (dl.edit==='src') dl.src = v; else { dl.tk = v.toUpperCase(); } dl.edit = null; dlDraw(); };
     i.onkeydown = e => { if (e.key==='Enter'){ e.preventDefault(); done(); } }; i.onblur = done; }
   $('#dlHint').innerHTML = { WORTH:'CAT steps through assets.<br>Type a number to log a spend.',
     SPEND: (dl.sw===0 ? 'CAT category · SUB sub' : dl.sw===1 ? 'CAT to-account' : 'CAT type · SUB tds') + '<br>ACC account · DATE · NOTE' + (dl.sw===2?' (who paid)':'') + '<br>PRINT saves',

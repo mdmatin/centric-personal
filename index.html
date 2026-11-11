@@ -501,6 +501,10 @@ th.r,td.r{text-align:right}
 .mswitch b[data-mpick]{cursor:pointer;display:inline-flex;align-items:center;gap:5px}
 .mswitch b svg.mcaret{width:13px;height:13px;color:var(--ink-3)}
 .mswitch b[data-mpick]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+/* a long-press on the month must never start iPhone's text selection (it could select the whole page):
+   the switcher and the menu can't be selected, and nothing can while a press is held */
+.mswitch,.fmenu{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+body.nosel,body.nosel *{-webkit-touch-callout:none!important;-webkit-user-select:none!important;user-select:none!important}
 .fmenu .pmsub{display:block;font-size:12.5px;font-weight:400;color:var(--ink-3);margin-top:2px}
 .vbx-y{font-size:12px;color:var(--ink-3);margin-top:2px}
 /* List: a full-page sheet like the add screen — every month of a year (or every year) with money in, spent and net */
@@ -510,10 +514,6 @@ th.r,td.r{text-align:right}
 #lsheet .lsw b{font-family:var(--font-disp);font-size:19px;font-weight:600;letter-spacing:-.4px}
 #lsheet .lsum{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;background:var(--canvas);border:1px solid var(--card-edge);border-radius:var(--r-card);padding:12px 6px;margin-bottom:12px}
 #lsheet .lsum span{display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:3px}#lsheet .lsum b{font-size:15.5px;font-weight:600}
-#lsheet .lrow .r{display:grid;grid-template-columns:auto auto;column-gap:14px;align-items:baseline;text-align:right}
-#lsheet .lrow .r .li{font-size:14px;font-weight:500;color:var(--up)}#lsheet .lrow .r .li.z{color:var(--ink-3)}
-#lsheet .lrow .r .le{font-size:15.5px;font-weight:600}
-#lsheet .lrow .r .ln{grid-column:1 / span 2;font-size:12.5px;color:var(--ink-3);margin-top:2px}
 #lsheet .card.tight{overflow:hidden;isolation:isolate}
 /* Trends: a line of what was spent, one point per month or year; scroll it sideways, tap a point */
 #lsheet .tch{background:var(--canvas);border:1px solid var(--card-edge);border-radius:var(--r-card);margin-bottom:12px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
@@ -525,7 +525,14 @@ th.r,td.r{text-align:right}
 #lsheet .tch text.ay{font-size:10.5px}
 #lsheet .tch .pt{cursor:pointer}
 #lsheet .tnote{font-size:12.5px;color:var(--ink-3);text-align:center;margin:-4px 0 10px}
-#lsheet .lrow.now{position:relative}#lsheet .lrow.now::before{content:'';position:absolute;inset:0 -40px;background:color-mix(in srgb, var(--blue) 9%, transparent);z-index:-1}   /* this month / this year */
+#lsheet .tline{margin:2px 8px 14px}
+#lsheet .ltab .lh,#lsheet .ltab .lr{display:grid;grid-template-columns:1fr 1.25fr 1.25fr;align-items:center;column-gap:8px}
+#lsheet .ltab .lh{padding:10px 0 6px;font-size:12px;color:var(--ink-2)}
+#lsheet .ltab .lr{width:100%;padding:13px 0;border-top:1px solid var(--hairline);font-size:14.5px;color:var(--ink);text-align:left}
+#lsheet .ltab .lh span:not(:first-child),#lsheet .ltab .lr span:not(:first-child){text-align:right}
+#lsheet .ltab .lr span:first-child{font-weight:600;font-size:15px}
+#lsheet .ltab .lr .z{color:var(--ink-3)}
+#lsheet .daygroup{margin-left:8px;margin-right:8px}   /* cards here sit 16px in, not 24px: keep the day line 8px inside them, as on Activity */
 #lsheet .card{margin-left:0;margin-right:0}
 #lsheet .lsum b.up{color:var(--up)}#lsheet .lsum b.down{color:var(--down)}
 .mpick{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.28);display:flex;justify-content:center;align-items:flex-start;padding-top:calc(env(safe-area-inset-top) + 110px);opacity:0;transition:opacity .18s}
@@ -2526,7 +2533,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-12l';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-12m';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -6241,13 +6248,14 @@ function paintListSheet(){
   }
   rows.forEach(r=>{ tI += r.i; tE += r.e; });
   const net = v => `<span class="${v<0?'down':v>0?'up':''}">${v<0?'−':v>0?'+':''}${fINR2(Math.abs(v))}</span>`;
-  const list = rows.map(r=>`<div class="row tap lrow ${r.now?'now':''} ${r.yr?'yr':''}" data-lsk="${r.key}"><div class="l"><div class="n">${esc(r.n)}</div><div class="m num">${esc(r.m)}</div></div>
-      <div class="r num money"><span class="li ${r.i?'':'z'}">${r.i ? '+' + fINR2(r.i) : fINR2(0)}</span><span class="le">${fINR2(r.e)}</span><span class="ln">Net ${net(r.i - r.e)}</span></div></div>`).join('');
+  // one table: Month (or Year) · Income · Expense — the totals above, as on Activity
+  const list = rows.length ? `<div class="lh"><span>${lsMode==='year' ? 'Year' : 'Month'}</span><span>Income</span><span>Expense</span></div>`
+    + rows.map(r=>`<button class="lr num money" data-lsk="${r.key}"><span>${esc(r.n)}</span><span class="${r.i?'up':'z'}">${r.i ? fINR2(r.i) : '—'}</span><span>${fINR2(r.e)}</span></button>`).join('') : '';
   el.innerHTML = `<div class="xhd"><h3>List</h3><button data-close>Done</button></div>
     <div class="xscroll"><div class="seg xseg">${[['month','Monthly'],['year','Annually']].map(([k,t])=>`<button class="${lsMode===k?'on':''}" data-lsm="${k}">${t}</button>`).join('')}</div>
       ${nav}
-      <div class="lsum num money"><div><span>Income</span><b class="up">${fINR2(tI)}</b></div><div><span>Exp.</span><b>${fINR2(tE)}</b></div><div><span>Net</span><b class="${tI-tE<0?'down':tI-tE>0?'up':''}">${tI-tE<0?'−':tI-tE>0?'+':''}${fINR2(Math.abs(tI - tE))}</b></div></div>
-      <div class="card tight">${list || '<div class="empty">Nothing recorded</div>'}</div></div>`;
+      <div class="tline num money"><div><span>Income</span><b class="up">${fINR2(tI)}</b></div><div><span>Expense</span><b>${fINR2(tE)}</b></div><div><span>Net</span><b class="${tI-tE<0?'down':''}">${fINR2(tI - tE)}</b></div></div>
+      <div class="card tight ltab">${list || '<div class="empty">Nothing recorded</div>'}</div></div>`;
   el.querySelector('[data-close]').onclick = closeListSheet;
   el.querySelectorAll('[data-lsm]').forEach(b=>b.onclick=()=>{ lsMode = b.dataset.lsm; paintListSheet(); });
   el.querySelectorAll('[data-lsy]').forEach(b=>b.onclick=()=>{ lsYear = String(+lsYear + Number(b.dataset.lsy)); paintListSheet(); });
@@ -6300,9 +6308,9 @@ function paintTrendSheet(){
   let below = '';
   if (tsMode==='year'){
     const nowYm = ymNow(), yms = Array.from({length:12},(_,i)=>tsSel+'-'+String(12-i).padStart(2,'0')).filter(m=>m<=nowYm);
-    below = `<div class="card tight">${yms.map(ym=>{ const v = lsSpent([ym]), last = new Date(+ym.slice(0,4), +ym.slice(5,7), 0).getDate();
-      return `<div class="row tap lrow ${ym===nowYm?'now':''}" data-tm="${ym}"><div class="l"><div class="n">${MON3[+ym.slice(5,7)-1]}</div><div class="m num">01/${ym.slice(5,7)} – ${last}/${ym.slice(5,7)}</div></div>
-        <div class="r num money"><span class="le" style="grid-column:1 / span 2">${fINR2(v)}</span><span class="ln">${cur.v ? Math.round(v/cur.v*100) + '% of the year' : '—'}</span></div></div>`; }).join('')}</div>`;
+    // the year's months as a table, like List: Month · share of the year · Expense
+    below = `<div class="card tight ltab"><div class="lh"><span>Month</span><span>Of the year</span><span>Expense</span></div>${yms.map(ym=>{ const v = lsSpent([ym]);
+      return `<button class="lr num money" data-tm="${ym}"><span>${MON3[+ym.slice(5,7)-1]}</span><span class="z">${cur.v ? Math.round(v/cur.v*100) + '%' : '—'}</span><span>${fINR2(v)}</span></button>`; }).join('')}</div>`;
   } else {
     const d = xd() || {}, held = tsSel >= (d.entriesFrom||'');
     const list = held ? (d.entries||[]).filter(e=>e.date.slice(0,7)===tsSel && !constrMoney(e) && !isConstr(e.category)) : [];
@@ -6321,8 +6329,13 @@ function paintTrendSheet(){
 }
 // hold for ~half a second; the tap that ends a long-press doesn't also open the month list
 function perPress(b){
-  let t = null; const go = ()=>{ b._lp = true; openPerMenu(b); }, stop = ()=>clearTimeout(t);
-  b.addEventListener('touchstart', ()=>{ b._lp = false; clearTimeout(t); t = setTimeout(go, 450); }, { passive:true });
+  let t = null, u = null;
+  const unsel = () => { try{ const s = window.getSelection(); if (s && s.rangeCount) s.removeAllRanges(); }catch(_){} };
+  const hold = () => { clearTimeout(u); document.body.classList.add('nosel'); };
+  const free = () => { clearTimeout(u); u = setTimeout(()=>document.body.classList.remove('nosel'), 400); };
+  const go = ()=>{ b._lp = true; unsel(); openPerMenu(b); }, stop = ()=>{ clearTimeout(t); free(); };
+  b.addEventListener('touchstart', ()=>{ b._lp = false; hold(); clearTimeout(t); t = setTimeout(go, 450); }, { passive:true });
+  b.addEventListener('selectstart', e=>e.preventDefault());
   b.addEventListener('mousedown', ()=>{ b._lp = false; clearTimeout(t); t = setTimeout(go, 450); });
   ['touchend','touchmove','touchcancel','mouseup','mouseleave'].forEach(ev=>b.addEventListener(ev, stop, { passive:true }));
   b.addEventListener('contextmenu', e=>e.preventDefault());

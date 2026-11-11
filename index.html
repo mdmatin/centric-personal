@@ -532,7 +532,15 @@ body.nosel,body.nosel *{-webkit-touch-callout:none!important;-webkit-user-select
 #lsheet .ltab .lh span:not(:first-child),#lsheet .ltab .lr span:not(:first-child){text-align:right}
 #lsheet .ltab .lr span:first-child{font-weight:600;font-size:15px}
 #lsheet .ltab .lr .z{color:var(--ink-3)}
-#lsheet .daygroup{margin-left:8px;margin-right:8px}   /* cards here sit 16px in, not 24px: keep the day line 8px inside them, as on Activity */
+#lsheet .daygroup{margin-left:8px;margin-right:8px}
+/* a category's year: its months as a table (Month · of budget · Expense), like List */
+.ctab .lh,.ctab .lr{display:grid;grid-template-columns:1fr 1.1fr 1.3fr;align-items:center;column-gap:8px}
+.ctab .lh{padding:10px 0 6px;font-size:12px;color:var(--ink-2)}
+.ctab .lr{width:100%;padding:13px 0;border-top:1px solid var(--hairline);font-size:14.5px;color:var(--ink);text-align:left}
+.ctab .lh span:not(:first-child),.ctab .lr span:not(:first-child){text-align:right}
+.ctab .lr span:first-child{font-weight:600;font-size:15px}.ctab .lr .z{color:var(--ink-3)}
+.xbud.static{cursor:default}
+.cnl{color:var(--ink-3);font-style:italic}   /* cards here sit 16px in, not 24px: keep the day line 8px inside them, as on Activity */
 #lsheet .card{margin-left:0;margin-right:0}
 #lsheet .lsum b.up{color:var(--up)}#lsheet .lsum b.down{color:var(--down)}
 .mpick{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.28);display:flex;justify-content:center;align-items:flex-start;padding-top:calc(env(safe-area-inset-top) + 110px);opacity:0;transition:opacity .18s}
@@ -2533,7 +2541,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-12m';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-12n';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -6376,7 +6384,7 @@ function renderSpend(){
     b.onclick = ()=>{ if (b._lp){ b._lp = false; return; }
       if (spPeriod().k==='month') monthPicker(spMonth, m=>{ spMonth = m; renderSpend(); }, 12); else openPerMenu(b); };
     if (spSec==='monthly' || spSec==='budget') perPress(b); });
-  $$('#spBody [data-xcat]').forEach(r=>r.onclick=()=>pushPage({ kind:'expcat', cat:r.dataset.xcat, ym:r.dataset.ymc||spMonth }));
+  $$('#spBody [data-xcat]').forEach(r=>r.onclick=()=>pushPage({ kind:'expcat', cat:r.dataset.xcat, ym:r.dataset.ymc||spMonth, yr: spPeriod().k==='year' ? spMonth.slice(0,4) : null }));   // from a year: the category's year
   $$('#spBody [data-icat]').forEach(r=>r.onclick=()=>pushPage({ kind:'inccat', cat:r.dataset.icat, ym:r.dataset.ymc||spMonth }));
   $$('#spBody [data-budgets]').forEach(b=>b.onclick=()=>pushPage({ kind:'budgets', ym:spMonth }));
   $$('#spBody [data-xrow]').forEach(r=>r.onclick=()=>openXSheet(((xd()||{}).entries||[]).find(e=>String(e.row)===r.dataset.xrow)));
@@ -6630,12 +6638,12 @@ function spMonthlyHtml(){
 function xRow(e, showCat){
   const B = rowBits(moveK({ kind:'expense', e }), e, { noCat: !showCat });
   return `<button class="row trow" data-xrow="${e.row}" data-q="${esc(qWords(e.note, e.desc, e.category, e.sub, e.account))}">${B.icon}
-    <div class="l"><div class="n">${esc(B.title)}</div>${B.metaTxt || e.amount<0 ? `<div class="m">${B.metaHtml}</div>` : ''}</div>
+    <div class="l"><div class="n">${esc(B.title)}</div>${B.metaTxt || e.amount<0 || e._cn ? `<div class="m">${B.metaHtml}${e._cn ? `${B.metaTxt ? ' · ' : ''}<span class="cnl">Construction · not counted</span>` : ''}</div>` : ''}</div>
     <div class="r"><div class="v num money ${e.amount<0?'up':''}">${e.amount<0 ? '+' + fINR2(-e.amount) : fINR2(e.amount)}</div></div></button>`;
 }
 function xDayGroups(list, showCat){
   const by = {}; list.forEach(e=>(by[e.date]=by[e.date]||[]).push(e));
-  return Object.keys(by).sort().reverse().map(d=>`<div class="daygroup xday"><span>${esc(dayHd(d))}</span><span class="num money">${(()=>{ const t = by[d].reduce((a,e)=>a+e.amount,0); return t<0 ? `<em class="up solo">+${fINR2(-t)}</em>` : fINR2(t); })()}</span></div>
+  return Object.keys(by).sort().reverse().map(d=>`<div class="daygroup xday"><span>${esc(dayHd(d))}</span><span class="num money">${(()=>{ const t = by[d].reduce((a,e)=>a+(e._cn ? 0 : e.amount),0); return t<0 ? `<em class="up solo">+${fINR2(-t)}</em>` : fINR2(t); })()}</span></div>
     <div class="card tight">${by[d].map(e=>xRow(e, showCat)).join('')}</div>`).join('');
 }
 /* Transactions — expenses, transfers and money in for the month, newest first.
@@ -7056,6 +7064,7 @@ function spListHtml(){
 
 /* ---------- category page ---------- */
 function expcatBody(p){
+  if (p.yr) return expcatYearBody(p);
   const cat = p.cat, ym = p.ym, o = xMonth(ym), spent = o[cat]||0, bud = xBudget(cat, ym);
   const list = xEntries(ym).filter(e=>e.category===cat);
   // every month from the first with data up to now, scrolled sideways; a tap
@@ -7084,10 +7093,40 @@ function expcatBody(p){
       ${bud ? pbar(spent/bud) : ''}
       ${chart}
     </div>
-    ${isInvest(cat) ? `<button class="kitepay" data-kitepay>${chev('M12 19V5M5 12l7-7 7 7')}<span><b>Liquidation</b><small>Money back from an investment to your bank</small></span></button>` : ''}
     ${subRows ? `<div class="sechead"><h2>By subcategory</h2></div><div class="card hstats xsubs">${subRows}</div>` : ''}
     <div class="sechead"><h2>Expenses</h2></div>
-    ${list.length ? xDayGroups(list, false) : '<div class="card tight"><div class="empty">Nothing in this category this month</div></div>'}`;
+    ${list.length ? xDayGroups(list.map(e=>constrMoney(e) ? { ...e, _cn:true } : e), false) : '<div class="card tight"><div class="empty">Nothing in this category this month</div></div>'}`;   // paid from a construction account: listed, not in the total
+}
+
+/* A category's year (opened from Stats or Budget in Year view): the year's spend against the budget of
+   the months so far, the months as a line, by subcategory, and the months as a table — tap one for that month. */
+function expcatYearBody(p){
+  const cat = p.cat, y = p.yr, nowYm = ymNow(), all12 = Array.from({length:12},(_,i)=>y+'-'+String(i+1).padStart(2,'0'));
+  const yms = all12.filter(m=>m<=nowYm), vals = yms.map(m=>xMonth(m)[cat]||0), spent = vals.reduce((a,v)=>a+v,0);
+  const bud = yms.reduce((a,m)=>a+xBudget(cat,m),0), full = all12.reduce((a,m)=>a+xBudget(cat,m),0), sf = yms.length < 12;
+  const d0 = xd() || {}, list = (d0.entries||[]).filter(e=>e.category===cat && e.date.slice(0,4)===y);
+  const partial = (d0.entriesFrom||'') > y+'-01';               // the phone holds this year's entries only from entriesFrom
+  const subs = {}; list.forEach(e=>{ const k = e.sub||'Other'; subs[k] = (subs[k]||0) + e.amount; });
+  const subRows = Object.keys(subs).sort((a,b)=>subs[b]-subs[a]).map(k=>`<div class="hrow"><span>${esc(k)}</span><b class="num money">${fINR2(subs[k])}</b></div>`).join('');
+  const chart = monthLineChart(yms, vals, '', m=>xBudget(cat,m), xBudget(cat, yms[yms.length-1]||nowYm));
+  const rows = yms.slice().reverse().map(m=>{ const v = xMonth(m)[cat]||0, b = xBudget(cat,m), u = b ? Math.round(v/b*100) : null;
+    return `<button class="lr num money" data-mbym="${m}"><span>${MON3[+m.slice(5,7)-1]}</span><span class="${u!=null && u>100 ? 'down' : 'z'}">${u!=null ? u + '%' : '—'}</span><span>${fINR2(v)}</span></button>`; }).join('');
+  const cy = nowYm.slice(0,4);
+  const sw = `<div class="mswitch pg-mswitch">
+      <button data-pyy="-1" aria-label="Previous year">${chev('M15 5l-7 7 7 7')}</button><b>${esc(y)}</b>
+      <button data-pyy="1" aria-label="Next year" ${y>=cy?'disabled':''}>${chev('M9 5l7 7-7 7')}</button></div>`;
+  const over = bud && spent > bud;
+  return sw + `<div class="card pg-card pg-hero">
+      <div class="pg-id">${xTile(cat)}<div class="grow"><div class="t">${esc(cat)}</div><div class="s">${esc(y)}${sf?' so far':''}${partial ? '' : ` · ${list.length} expense${list.length===1?'':'s'}`}</div></div>${catStep(p)}</div>
+      <div class="pg-big num money">${bigAmt(fINR2(spent))}</div>
+      <div class="xbud static num money">${bud ? `of ${fINR2(bud)} budget${sf ? ' so far' : ''}` : 'No budget'}</div>
+      ${bud && (sf || over) ? `<div class="vbx-y num money">${sf ? `${fINR2(full)} for the year` : ''}${sf && over ? ' · ' : ''}${over ? `<span class="down">${fINR2(spent-bud)} over</span>` : ''}</div>` : ''}
+      ${bud ? pbar(spent/bud) : ''}
+      ${chart}
+    </div>
+    ${subRows ? `<div class="sechead"><h2>By subcategory</h2></div><div class="card hstats xsubs">${subRows}</div>` : ''}
+    <div class="sechead"><h2>By month</h2></div>
+    <div class="card tight ctab"><div class="lh"><span>Month</span><span>Of budget</span><span>Expense</span></div>${rows}</div>`;
 }
 
 /* Line graph for a category / income type: one point per month, its value in k
@@ -7210,7 +7249,8 @@ function wireXPage(p){
       p.gx = gs.scrollLeft;
       gs.addEventListener('scroll', ()=>{ p.gx = gs.scrollLeft; }, { passive:true });
     }
-    const toMonth = m=>{ if (!m || m>ymNow() || m===p.ym) return; p.ym = m; p.bEdit = false; rerender(); };
+    const toMonth = m=>{ if (!m || m>ymNow() || (m===p.ym && !p.yr)) return; p.ym = m; p.yr = null; p.gx = null; p.bEdit = false; rerender(); };   // a month from a year opens that month
+    $$('#page [data-pyy]').forEach(x=>x.onclick=()=>{ const y = String(+p.yr + Number(x.dataset.pyy)); if (y > ymNow().slice(0,4)) return; p.yr = y; p.gx = null; rerender(); });
     $$('#page [data-pym]').forEach(x=>x.onclick=()=>toMonth(ymAdd(p.ym, Number(x.dataset.pym))));
     $$('#page [data-mbym]').forEach(x=>x.onclick=()=>toMonth(x.dataset.mbym));
     $$('#page [data-mpick]').forEach(x=>x.onclick=()=>monthPicker(p.ym, toMonth));

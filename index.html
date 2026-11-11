@@ -500,6 +500,34 @@ th.r,td.r{text-align:right}
 .mswitch svg{width:15px;height:15px}
 .mswitch b[data-mpick]{cursor:pointer;display:inline-flex;align-items:center;gap:5px}
 .mswitch b svg.mcaret{width:13px;height:13px;color:var(--ink-3)}
+.mswitch b[data-mpick]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.fmenu .pmsub{display:block;font-size:12.5px;font-weight:400;color:var(--ink-3);margin-top:2px}
+.vbx-y{font-size:12px;color:var(--ink-3);margin-top:2px}
+/* List: a full-page sheet like the add screen — every month of a year (or every year) with money in, spent and net */
+#lsheet{display:flex;flex-direction:column;top:0;bottom:0;height:auto;max-height:none;border-radius:0;overflow:hidden;padding:calc(6px + env(safe-area-inset-top)) 0 0;background:var(--parchment)}
+#lsheet .xhd button{margin-left:auto}
+#lsheet .lsw{margin:2px 0 10px}
+#lsheet .lsw b{font-family:var(--font-disp);font-size:19px;font-weight:600;letter-spacing:-.4px}
+#lsheet .lsum{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;background:var(--canvas);border:1px solid var(--card-edge);border-radius:var(--r-card);padding:12px 6px;margin-bottom:12px}
+#lsheet .lsum span{display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:3px}#lsheet .lsum b{font-size:15.5px;font-weight:600}
+#lsheet .lrow .r{display:grid;grid-template-columns:auto auto;column-gap:14px;align-items:baseline;text-align:right}
+#lsheet .lrow .r .li{font-size:14px;font-weight:500;color:var(--up)}#lsheet .lrow .r .li.z{color:var(--ink-3)}
+#lsheet .lrow .r .le{font-size:15.5px;font-weight:600}
+#lsheet .lrow .r .ln{grid-column:1 / span 2;font-size:12.5px;color:var(--ink-3);margin-top:2px}
+#lsheet .card.tight{overflow:hidden;isolation:isolate}
+/* Trends: a line of what was spent, one point per month or year; scroll it sideways, tap a point */
+#lsheet .tch{background:var(--canvas);border:1px solid var(--card-edge);border-radius:var(--r-card);margin-bottom:12px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#lsheet .tch::-webkit-scrollbar{display:none}
+#lsheet .tch svg{display:block}
+#lsheet .tch text{font:500 11px var(--font);fill:var(--ink-3)}
+#lsheet .tch text.sel{fill:var(--ink);font-weight:700}
+#lsheet .tch text.ax{font-size:12.5px;fill:var(--ink-2)}#lsheet .tch text.ax.sel{fill:var(--blue)}
+#lsheet .tch text.ay{font-size:10.5px}
+#lsheet .tch .pt{cursor:pointer}
+#lsheet .tnote{font-size:12.5px;color:var(--ink-3);text-align:center;margin:-4px 0 10px}
+#lsheet .lrow.now{position:relative}#lsheet .lrow.now::before{content:'';position:absolute;inset:0 -40px;background:color-mix(in srgb, var(--blue) 9%, transparent);z-index:-1}   /* this month / this year */
+#lsheet .card{margin-left:0;margin-right:0}
+#lsheet .lsum b.up{color:var(--up)}#lsheet .lsum b.down{color:var(--down)}
 .mpick{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.28);display:flex;justify-content:center;align-items:flex-start;padding-top:calc(env(safe-area-inset-top) + 110px);opacity:0;transition:opacity .18s}
 .mpick.show{opacity:1}
 html[data-theme=dark] .mpick{background:rgba(0,0,0,.55)}
@@ -2409,7 +2437,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
     <section class="view" id="v-spend">
       <div class="seg segwide" id="spSeg">
         <button data-s="list" class="on">Activity</button>
-        <button data-s="monthly">Monthly</button>
+        <button data-s="monthly">Stats</button>
         <button data-s="budget">Budget</button>
       </div>
       <div id="spBody"></div>
@@ -2498,7 +2526,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-12k';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-12l';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -5063,7 +5091,7 @@ function show(v, sec){
   $('#title').textContent=TITLES[isAcc ? 'acc' : v]; $('#spSeg').hidden = isAcc; paintDate(); $('#fab').hidden = (v!=='txn' && v!=='spend' && v!=='break') || isAcc; paintDfab();
   $('#fab').setAttribute('aria-label', v==='spend' ? 'Add expense' : 'Add transaction');
   if (v==='break' && prevView!=='break') showHoldSec('assets');    // Holdings always opens on Assets
-  if (v==='spend'){ spSec = sec || 'list'; if (prevView!=='spend'){ spMonth = ymNow(); setTimeout(pollDrafts, 400); } renderSpend();   // Spend always opens on Activity
+  if (v==='spend'){ spSec = sec || 'list'; if (prevView!=='spend'){ spMonth = ymNow(); spPer = 'month'; setTimeout(pollDrafts, 400); } renderSpend();   // Spend always opens on Activity
     if (!X || Date.now() - X.at > X_STALE) loadExpenses(); else pollDrafts(); }
   window.scrollTo(0,0);
   if (v==='trend') loadBucketDaily();
@@ -6137,15 +6165,178 @@ function monthPicker(cur, pick, ahead){
 }
 
 /* ---------- the tab ---------- */
+/* Stats and Budget can show a month (the default) or a year: long-press the month to choose.
+   Activity always shows a month. */
+var spPer = 'month';
+const spPerFor = sec => (sec==='monthly' || sec==='budget') && spPer==='year' ? 'year' : 'month';
+function spPeriod(sec){
+  const k = spPerFor(sec || spSec);
+  if (k==='year'){ const y = spMonth.slice(0,4), cy = ymNow().slice(0,4);
+    return { k, y, yms:Array.from({length:12},(_,i)=>y+'-'+String(i+1).padStart(2,'0')), from:y+'-01-01', to:y+'-12-31', label:y, ymTap: y===cy ? ymNow() : y+'-12' }; }
+  return { k, ym:spMonth, yms:[spMonth], from:spMonth+'-01', to:spMonth+'-31', label:ymLabel(spMonth), ymTap:spMonth };
+}
+// spend per category over a period, by the same rules as xMonth (construction money left out)
+function perExp(P){
+  const o = {}; P.yms.forEach(ym=>{ const m = xMonth(ym); Object.keys(m).forEach(c=>o[c]=(o[c]||0)+m[c]); }); return o;
+}
+function perInc(P){
+  if (P.k==='month') return monthIncome(P.ym);
+  const o = {}; ((xd()||{}).incomes||[]).forEach(i=>{ if (i.date>=P.from && i.date<=P.to && i.type!=='Adjustment' && i.amount>0 && !constrAcc(i.account)) o[i.type||'Other']=(o[i.type||'Other']||0)+i.amount; });
+  return o;
+}
+// the menu a long-press on the month opens
+function openPerMenu(btn){
+  closeTxMenu();
+  const r = btn.getBoundingClientRect(), on = spPerFor(spSec);
+  const bd = document.createElement('div'); bd.className = 'fmenu-bd'; bd.onclick = closeTxMenu;
+  const m = document.createElement('div'); m.className = 'fmenu';
+  m.style.width = '230px'; m.style.top = (r.bottom + 8) + 'px'; m.style.left = Math.max(12, Math.min(innerWidth - 242, r.left + r.width/2 - 115)) + 'px';
+  const sub = k => k==='year' ? spMonth.slice(0,4) : ymLabel(spMonth);
+  m.innerHTML = `<div class="fh">${spSec==='budget' ? 'Show budget by' : 'Show stats by'}</div>`
+    + ['month','year'].map(k=>`<button data-per="${k}"><span>${k==='year' ? 'Year' : 'Month'}<small class="pmsub">${esc(sub(k))}</small></span>${on===k ? '<i>✓</i>' : ''}</button>`).join('')
+    + `<div class="fh">Open</div><button data-plist><span>List<small class="pmsub">Every month or year at a glance</small></span></button>`
+    + `<button data-ptrend><span>Trends<small class="pmsub">Spending over time, as a line</small></span></button>`;
+  m.querySelectorAll('[data-per]').forEach(x=>x.onclick=()=>{ spPer = x.dataset.per; closeTxMenu(); renderSpend(); });
+  m.querySelectorAll('[data-plist]').forEach(x=>x.onclick=()=>{ closeTxMenu(); openListSheet(); });
+  m.querySelectorAll('[data-ptrend]').forEach(x=>x.onclick=()=>{ closeTxMenu(); openTrendSheet(); });
+  document.body.append(bd, m);
+  try{ navigator.vibrate && navigator.vibrate(10); }catch(_){}
+}
+/* List — every month of a year, or every year: money in, spent, and the net. Spent counts the way
+   Stats does (construction money left out; a category whose refunds outweigh it doesn't go below zero). */
+let lsMode = 'month', lsYear = null, lsPaint = null;
+const lsSpent = yms => Object.values(personal(perExp({ k:'year', yms }))).filter(v=>v>0).reduce((a,v)=>a+v,0);
+const lsIn = (from, to) => xTotal(perInc({ k:'range', from, to }));
+function lsYears(){
+  const d = xd() || {}, ks = Object.keys(d.monthly||{}).concat((d.entries||[]).map(e=>e.date.slice(0,7)), (d.incomes||[]).map(i=>i.date.slice(0,7))).filter(Boolean).sort();
+  const y0 = +(ks[0]||ymNow()).slice(0,4), y1 = +ymNow().slice(0,4), out = [];
+  for (let y = y1; y >= y0; y--) out.push(String(y));
+  return out;
+}
+function openListSheet(){
+  if (!xd()){ toast('Expenses are still loading'); loadExpenses(); return; }
+  lsMode = 'month'; lsYear = spMonth.slice(0,4);
+  let el = $('#lsheet'); if (!el){ el = document.createElement('div'); el.className = 'sheet'; el.id = 'lsheet'; el.hidden = true; document.body.append(el); }
+  lsPaint = paintListSheet; paintListSheet();
+  $('#backdrop').hidden = false; el.hidden = false;
+  requestAnimationFrame(()=>{ $('#backdrop').classList.add('show'); el.classList.add('show'); });
+}
+function closeListSheet(){ const el = $('#lsheet'); if (!el) return; el.classList.remove('show');
+  if (!$('#xsheet').classList.contains('show')) $('#backdrop').classList.remove('show');
+  setTimeout(()=>{ if (el.classList.contains('show')) return; el.hidden = true; if (!$('#xsheet').classList.contains('show')) $('#backdrop').hidden = true; }, 280); }
+function paintListSheet(){
+  const el = $('#lsheet'); if (!el) return;
+  const nowYm = ymNow(), cy = nowYm.slice(0,4), d2 = s => s.slice(8,10) + '/' + s.slice(5,7);
+  let rows = [], tI = 0, tE = 0, nav = '';
+  if (lsMode==='month'){
+    const yms = Array.from({length:12},(_,i)=>lsYear+'-'+String(12-i).padStart(2,'0')).filter(m=>m<=nowYm);
+    rows = yms.map(ym=>{ const last = String(new Date(+ym.slice(0,4), +ym.slice(5,7), 0).getDate());
+      return { key:ym, now: ym===nowYm, n: 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')[+ym.slice(5,7)-1], m: `01/${ym.slice(5,7)} – ${last}/${ym.slice(5,7)}`, i: lsIn(ym+'-01', ym+'-31'), e: lsSpent([ym]) }; });
+    const ys = lsYears();
+    nav = `<div class="mswitch lsw"><button data-lsy="-1" aria-label="Previous year" ${lsYear<=ys[ys.length-1]?'disabled':''}>${chev('M15 5l-7 7 7 7')}</button><b>${esc(lsYear)}</b><button data-lsy="1" aria-label="Next year" ${lsYear>=cy?'disabled':''}>${chev('M9 5l7 7-7 7')}</button></div>`;
+  } else {
+    const ys = lsYears(); nav = `<div class="mswitch lsw" style="justify-content:center"><b>${esc(ys[ys.length-1])} – ${esc(ys[0])}</b></div>`;
+    rows = ys.map(y=>{ const yms = Array.from({length:12},(_,i)=>y+'-'+String(i+1).padStart(2,'0')).filter(m=>m<=nowYm);
+      return { key:y, now: y===cy, yr:true, n: y, m: y===cy ? `Jan – ${'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')[+nowYm.slice(5,7)-1]}` : 'Jan – Dec', i: lsIn(y+'-01-01', y+'-12-31'), e: lsSpent(yms) }; });
+  }
+  rows.forEach(r=>{ tI += r.i; tE += r.e; });
+  const net = v => `<span class="${v<0?'down':v>0?'up':''}">${v<0?'−':v>0?'+':''}${fINR2(Math.abs(v))}</span>`;
+  const list = rows.map(r=>`<div class="row tap lrow ${r.now?'now':''} ${r.yr?'yr':''}" data-lsk="${r.key}"><div class="l"><div class="n">${esc(r.n)}</div><div class="m num">${esc(r.m)}</div></div>
+      <div class="r num money"><span class="li ${r.i?'':'z'}">${r.i ? '+' + fINR2(r.i) : fINR2(0)}</span><span class="le">${fINR2(r.e)}</span><span class="ln">Net ${net(r.i - r.e)}</span></div></div>`).join('');
+  el.innerHTML = `<div class="xhd"><h3>List</h3><button data-close>Done</button></div>
+    <div class="xscroll"><div class="seg xseg">${[['month','Monthly'],['year','Annually']].map(([k,t])=>`<button class="${lsMode===k?'on':''}" data-lsm="${k}">${t}</button>`).join('')}</div>
+      ${nav}
+      <div class="lsum num money"><div><span>Income</span><b class="up">${fINR2(tI)}</b></div><div><span>Exp.</span><b>${fINR2(tE)}</b></div><div><span>Net</span><b class="${tI-tE<0?'down':tI-tE>0?'up':''}">${tI-tE<0?'−':tI-tE>0?'+':''}${fINR2(Math.abs(tI - tE))}</b></div></div>
+      <div class="card tight">${list || '<div class="empty">Nothing recorded</div>'}</div></div>`;
+  el.querySelector('[data-close]').onclick = closeListSheet;
+  el.querySelectorAll('[data-lsm]').forEach(b=>b.onclick=()=>{ lsMode = b.dataset.lsm; paintListSheet(); });
+  el.querySelectorAll('[data-lsy]').forEach(b=>b.onclick=()=>{ lsYear = String(+lsYear + Number(b.dataset.lsy)); paintListSheet(); });
+  // a month opens Stats on it; a year shows its months
+  el.querySelectorAll('[data-lsk]').forEach(r=>r.onclick=()=>{ const k = r.dataset.lsk;
+    if (lsMode==='year'){ lsMode = 'month'; lsYear = k; paintListSheet(); el.querySelector('.xscroll').scrollTop = 0; return; }
+    spMonth = k; spPer = 'month'; spSec = 'monthly'; closeListSheet(); renderSpend(); });
+}
+/* Trends — what was spent, as a line: one point per month (Monthly) or per year (Annually). The
+   line scrolls sideways; tap a point (or use ‹ ›) to pick it. Under it: a year's months, or a
+   month's entries day by day (spending only, as on Stats). */
+let tsMode = 'month', tsSel = null;
+const MON3 = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
+function tsSeries(){
+  const nowYm = ymNow();
+  if (tsMode==='year') return lsYears().slice().reverse().map(y=>({ k:y, lab:y, v: lsSpent(Array.from({length:12},(_,i)=>y+'-'+String(i+1).padStart(2,'0')).filter(m=>m<=nowYm)) }));
+  const y0 = lsYears().slice(-1)[0] || nowYm.slice(0,4), out = [];
+  for (let ym = y0+'-01'; ym <= nowYm; ym = ymAdd(ym,1)) out.push({ k:ym, lab:MON3[+ym.slice(5,7)-1], sub: ym.slice(5,7)==='01' ? ym.slice(0,4) : '', v: lsSpent([ym]) });
+  const i = out.findIndex(x=>x.v);  return i > 0 ? out.slice(i) : out;      // from the first month with spending
+}
+function openTrendSheet(){
+  if (!xd()){ toast('Expenses are still loading'); loadExpenses(); return; }
+  tsMode = 'month'; tsSel = spMonth > ymNow() ? ymNow() : spMonth;
+  let el = $('#lsheet'); if (!el){ el = document.createElement('div'); el.className = 'sheet'; el.id = 'lsheet'; el.hidden = true; document.body.append(el); }
+  lsPaint = paintTrendSheet; paintTrendSheet();
+  $('#backdrop').hidden = false; el.hidden = false;
+  requestAnimationFrame(()=>{ $('#backdrop').classList.add('show'); el.classList.add('show'); tsCenter(); });
+}
+function tsCenter(){ const w = $('#lsheet .tch'), p = $('#lsheet .tch .pt.on'); if (w && p) w.scrollLeft = Math.max(0, +p.dataset.x - w.clientWidth/2); }
+function paintTrendSheet(){
+  const el = $('#lsheet'); if (!el) return;
+  const S = tsSeries(); if (!S.find(x=>x.k===tsSel)) tsSel = S.length ? S[S.length-1].k : tsSel;
+  const si = S.findIndex(x=>x.k===tsSel), cur = S[si] || { v:0 };
+  const PAD = 30, CW = Math.max(64, Math.floor((Math.min(innerWidth, 560) - 32 - 2*PAD) / Math.max(1, S.length))), H = 210, T = 34, B = 44;
+  const W = S.length*CW + 2*PAD, mx = Math.max(1, ...S.map(x=>x.v));       // few points spread across; many scroll
+  const X = i => PAD + i*CW + CW/2, Y = v => T + (H - T - B) * (1 - v/mx);
+  const line = S.map((x,i)=>`${X(i).toFixed(1)},${Y(x.v).toFixed(1)}`).join(' ');
+  const area = S.length ? `M${X(0)},${H-B} L` + line.split(' ').join(' L') + ` L${X(S.length-1)},${H-B} Z` : '';
+  const pts = S.map((x,i)=>{ const on = i===si;
+    return `<g class="pt ${on?'on':''}" data-tk="${x.k}" data-x="${X(i)}"><rect x="${X(i)-CW/2}" y="0" width="${CW}" height="${H}" fill="transparent"/>
+      <text x="${X(i)}" y="${Y(x.v)-12}" text-anchor="middle" class="num ${on?'sel':''}">${on ? fINR(x.v) : (fCmp(x.v) || '0')}</text>
+      <circle cx="${X(i)}" cy="${Y(x.v)}" r="${on?6:4}" fill="${on?'var(--canvas)':'var(--blue)'}" stroke="var(--blue)" stroke-width="${on?3:0}"/>
+      <text x="${X(i)}" y="${H-B+22}" text-anchor="middle" class="ax ${on?'sel':''}">${esc(x.lab)}</text>${x.sub ? `<text x="${X(i)}" y="${H-B+37}" text-anchor="middle" class="ay">${x.sub}</text>` : ''}</g>`; }).join('');
+  const chart = `<div class="tch"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+      <defs><linearGradient id="tsg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--blue)" stop-opacity=".18"/><stop offset="1" stop-color="var(--blue)" stop-opacity="0"/></linearGradient></defs>
+      <line x1="0" x2="${W}" y1="${H-B}" y2="${H-B}" stroke="var(--hairline)"/>
+      <path d="${area}" fill="url(#tsg)"/><polyline points="${line}" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${pts}</svg></div>`;
+  const label = tsMode==='year' ? tsSel : ymLabel(tsSel);
+  const nav = `<div class="mswitch lsw"><button data-tsn="-1" aria-label="Previous" ${si<=0?'disabled':''}>${chev('M15 5l-7 7 7 7')}</button><b>${esc(label)}</b><button data-tsn="1" aria-label="Next" ${si>=S.length-1?'disabled':''}>${chev('M9 5l7 7-7 7')}</button></div>`;
+  let below = '';
+  if (tsMode==='year'){
+    const nowYm = ymNow(), yms = Array.from({length:12},(_,i)=>tsSel+'-'+String(12-i).padStart(2,'0')).filter(m=>m<=nowYm);
+    below = `<div class="card tight">${yms.map(ym=>{ const v = lsSpent([ym]), last = new Date(+ym.slice(0,4), +ym.slice(5,7), 0).getDate();
+      return `<div class="row tap lrow ${ym===nowYm?'now':''}" data-tm="${ym}"><div class="l"><div class="n">${MON3[+ym.slice(5,7)-1]}</div><div class="m num">01/${ym.slice(5,7)} – ${last}/${ym.slice(5,7)}</div></div>
+        <div class="r num money"><span class="le" style="grid-column:1 / span 2">${fINR2(v)}</span><span class="ln">${cur.v ? Math.round(v/cur.v*100) + '% of the year' : '—'}</span></div></div>`; }).join('')}</div>`;
+  } else {
+    const d = xd() || {}, held = tsSel >= (d.entriesFrom||'');
+    const list = held ? (d.entries||[]).filter(e=>e.date.slice(0,7)===tsSel && !constrMoney(e) && !isConstr(e.category)) : [];
+    below = !held ? `<div class="card"><div class="empty">${esc(ymLabel(tsSel))}: ${fINR2(cur.v)} spent. Its entries are older than the ones the phone keeps — see them in Activity's search.</div></div>`
+      : list.length ? xDayGroups(list, true) : `<div class="card"><div class="empty">Nothing spent in ${esc(ymLabel(tsSel))}</div></div>`;
+  }
+  el.innerHTML = `<div class="xhd"><h3>Trends</h3><button data-close>Done</button></div>
+    <div class="xscroll"><div class="seg xseg">${[['month','Monthly'],['year','Annually']].map(([k,t])=>`<button class="${tsMode===k?'on':''}" data-tsm="${k}">${t}</button>`).join('')}</div>
+      ${nav}${chart}<div class="tnote">Spent each ${tsMode==='year'?'year':'month'} · scroll the line, tap a point</div>${below}</div>`;
+  el.querySelector('[data-close]').onclick = closeListSheet;
+  el.querySelectorAll('[data-tsm]').forEach(b=>b.onclick=()=>{ const k = b.dataset.tsm; if (k===tsMode) return;
+    tsSel = k==='year' ? String(tsSel).slice(0,4) : (String(tsSel)===ymNow().slice(0,4) ? ymNow() : tsSel+'-12'); tsMode = k; paintTrendSheet(); tsCenter(); });
+  el.querySelectorAll('[data-tsn]').forEach(b=>b.onclick=()=>{ const n = S[si + Number(b.dataset.tsn)]; if (n){ tsSel = n.k; paintTrendSheet(); tsCenter(); } });
+  el.querySelectorAll('#lsheet .pt').forEach(g=>g.onclick=()=>{ const w = $('#lsheet .tch'), x = w.scrollLeft; tsSel = g.dataset.tk; paintTrendSheet(); $('#lsheet .tch').scrollLeft = x; });
+  el.querySelectorAll('[data-tm]').forEach(r=>r.onclick=()=>{ tsMode = 'month'; tsSel = r.dataset.tm; paintTrendSheet(); tsCenter(); el.querySelector('.xscroll').scrollTop = 0; });
+}
+// hold for ~half a second; the tap that ends a long-press doesn't also open the month list
+function perPress(b){
+  let t = null; const go = ()=>{ b._lp = true; openPerMenu(b); }, stop = ()=>clearTimeout(t);
+  b.addEventListener('touchstart', ()=>{ b._lp = false; clearTimeout(t); t = setTimeout(go, 450); }, { passive:true });
+  b.addEventListener('mousedown', ()=>{ b._lp = false; clearTimeout(t); t = setTimeout(go, 450); });
+  ['touchend','touchmove','touchcancel','mouseup','mouseleave'].forEach(ev=>b.addEventListener(ev, stop, { passive:true }));
+  b.addEventListener('contextmenu', e=>e.preventDefault());
+}
 function renderSpend(){
   const el = $('#spBody'); if (!el) return;
   $$('#spSeg button').forEach(b=>b.classList.toggle('on', b.dataset.s===spSec));
   if (!xd()){ el.innerHTML = '<div class="empty">Loading expenses…</div>'; loadExpenses(); return; }
-  const cur = ymNow();
+  const cur = ymNow(), P0 = spPeriod();
+  const nextOff = P0.k==='year' ? +P0.y >= +cur.slice(0,4) : spMonth>=ymAdd(cur,12), prevOff = false;
   const sw = `<div class="mswitch">
-      <button data-ym="-1" aria-label="Previous month">${chev('M15 5l-7 7 7 7')}</button>
-      <b data-mpick role="button">${esc(ymLabel(spMonth))}<svg class="mcaret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></b>
-      <button data-ym="1" aria-label="Next month" ${spMonth>=ymAdd(cur,12)?'disabled':''}>${chev('M9 5l7 7-7 7')}</button></div>`;
+      <button data-ym="-1" aria-label="Previous ${P0.k}" ${prevOff?'disabled':''}>${chev('M15 5l-7 7 7 7')}</button>
+      <b data-mpick role="button">${esc(P0.label)}<svg class="mcaret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></b>
+      <button data-ym="1" aria-label="Next ${P0.k}" ${nextOff?'disabled':''}>${chev('M9 5l7 7-7 7')}</button></div>`;
   el.innerHTML = (spSec==='accounts' ? '' : sw) + (spSec==='list' ? recErrHtml() : '') + (spSec==='budget' ? spBudgetHtml() : spSec==='monthly' ? spMonthlyHtml() : spSec==='accounts' ? spAccountsHtml() : spListHtml());
   paintBooks();      // the Books pill lives on Accounts now; this also sets the orange dots
   $$('#spBody [data-acc]').forEach(r=>r.onclick=()=>pushPage({ kind:'acct', acc:r.dataset.acc, list:accSibs(r) }));
@@ -6164,9 +6355,14 @@ function renderSpend(){
   $$('#spBody .fchip [data-txa]').forEach(b=>b.onclick=()=>{ txAccs = []; renderSpend(); });
   $$('#spBody [data-fmenu]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); openTxMenu(b); });
   $$('#spBody [data-tx]').forEach(r=>r.onclick=()=>openTx(r.dataset.tx));
-  $$('#spBody [data-ym]').forEach(b=>b.onclick=()=>{ spMonth = ymAdd(spMonth, Number(b.dataset.ym)); renderSpend(); });
+  $$('#spBody [data-ym]').forEach(b=>b.onclick=()=>{ const k = Number(b.dataset.ym), P = spPeriod();
+    spMonth = ymAdd(spMonth, P.k==='year' ? 12*k : k);
+    renderSpend(); });
   $$('#spBody [data-wrapym]').forEach(b=>b.onclick=()=>openWrap(b.dataset.wrapym));
-  $$('#spBody [data-mpick]').forEach(b=>b.onclick=()=>monthPicker(spMonth, m=>{ spMonth = m; renderSpend(); }, 12));
+  $$('#spBody [data-mpick]').forEach(b=>{
+    b.onclick = ()=>{ if (b._lp){ b._lp = false; return; }
+      if (spPeriod().k==='month') monthPicker(spMonth, m=>{ spMonth = m; renderSpend(); }, 12); else openPerMenu(b); };
+    if (spSec==='monthly' || spSec==='budget') perPress(b); });
   $$('#spBody [data-xcat]').forEach(r=>r.onclick=()=>pushPage({ kind:'expcat', cat:r.dataset.xcat, ym:r.dataset.ymc||spMonth }));
   $$('#spBody [data-icat]').forEach(r=>r.onclick=()=>pushPage({ kind:'inccat', cat:r.dataset.icat, ym:r.dataset.ymc||spMonth }));
   $$('#spBody [data-budgets]').forEach(b=>b.onclick=()=>pushPage({ kind:'budgets', ym:spMonth }));
@@ -6207,10 +6403,15 @@ function moodFace(u, today){
   return `<svg class="mood ${k}" viewBox="0 0 18 18" role="img" aria-label="${t}"><circle cx="9" cy="9" r="7.6" fill="${k==='dead'?'#ffb3ad':'#ffd60a'}" stroke="var(--card,#fff)" stroke-width="1.6"/><g fill="none" stroke="#3a2a00" stroke-width="1.3" stroke-linecap="round">${eyes}${mouth}</g>${drop}</svg>`;
 }
 function spBudgetHtml(){
-  const ym = spMonth, o = xMonth(ym), now = new Date();
+  // a year compares what's been spent so far with the budget of the months so far (this month in full);
+  // the whole year's budget is shown beside it
+  const P = spPeriod('budget'), yr = P.k==='year', nowYm = ymNow(), soFar = yr ? P.yms.filter(m=>m<=nowYm) : [spMonth];
+  const ym = spMonth, o = yr ? perExp({ k:'year', yms:soFar }) : xMonth(ym), now = new Date();
   const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-  const today = ym===ymNow() ? now.getDate()/dim : null;
-  const all = xCats().map(c=>({ c, s:Math.max(0, o[c]||0), b:xBudget(c,ym) })).filter(x=>x.s || x.b);
+  const today = yr ? (soFar.length && soFar[soFar.length-1]===nowYm ? (soFar.length - 1 + now.getDate()/dim) / soFar.length : null) : ym===ymNow() ? now.getDate()/dim : null;
+  const sf = yr && soFar.length < 12 ? ' so far' : '';   // a past year is complete: no "so far"
+  const bOf = c => yr ? soFar.reduce((a,m)=>a+xBudget(c,m),0) : xBudget(c,ym), fullOf = c => yr ? P.yms.reduce((a,m)=>a+xBudget(c,m),0) : 0;
+  const all = xCats().map(c=>({ c, s:Math.max(0, o[c]||0), b:bOf(c), f:fullOf(c) })).filter(x=>x.s || x.b);
   const cats = all.filter(x=>!isConstr(x.c)), inv = all.filter(x=>isConstr(x.c));   // construction has its own fund
   const budgeted = cats.filter(x=>x.b).sort((a,b)=>(b.s/b.b)-(a.s/a.b));
   const loose = cats.filter(x=>!x.b && x.s).sort((a,b)=>b.s-a.s);
@@ -6230,22 +6431,22 @@ function spBudgetHtml(){
     return `<div class="row tap vbx" data-xcat="${esc(x.c)}"><span class="moodw">${xTile(x.c)}${moodFace(u, today)}</span><div class="l">
       <div class="vbx-h"><div class="n">${esc(x.c)}</div><div class="vbx-p num ${over?'down':''}">${Math.round(u*100)}%</div></div>
       ${tbar(u, col)}
-      <div class="vbx-m"><span class="num money">${fINR2(x.s)} of ₹${fCmp(x.b)}</span><span class="num money ${over?'down':''}">${fINR2(Math.abs(x.b-x.s))} ${over?'over':'left'}</span></div></div></div>`;
+      <div class="vbx-m"><span class="num money">${fINR2(x.s)} of ₹${fCmp(x.b)}${sf}</span><span class="num money ${over?'down':''}">${fINR2(Math.abs(x.b-x.s))} ${over?'over':'left'}</span></div>${sf ? `<div class="vbx-y num money">₹${fCmp(x.f)} for the year</div>` : ''}</div></div>`;
   };
   // data for the graph card, drawn by drawBudgetChart() once the page is on screen
   const isNowM = ym===ymNow();
-  vbData = { ym, cs: budgeted.map(x=>x.c), bud, isNow: isNowM };
-  const mo = xMonth(ym);
+  vbData = yr ? null : { ym, cs: budgeted.map(x=>x.c), bud, isNow: isNowM };     // the graph is a month's
+  const mo = yr ? o : xMonth(ym);
   const spends = Object.keys(mo).filter(c=>!isInvest(c) && !isConstr(c)).reduce((a,c)=>a+(mo[c]||0),0);
   const invested = Object.keys(mo).filter(isInvest).reduce((a,c)=>a+(mo[c]||0),0);
-  const incoming = xTotal(monthIncome(ym));
-  const graph = `<div class="vbg-ch" aria-label="Spending graph — swipe for ${vbView==='daily'?'monthly':'daily'}"><svg></svg><div class="tip"></div></div>
+  const incoming = xTotal(yr ? perInc(P) : monthIncome(ym));
+  const graph = yr ? '' : `<div class="vbg-ch" aria-label="Spending graph — swipe for ${vbView==='daily'?'monthly':'daily'}"><svg></svg><div class="tip"></div></div>
       <div class="vbg-ft">${vbView==='daily' ? `<div class="vbg-lg"><span><i></i>This month</span><span><i class="dots"></i>Last month</span></div>` : ''}
         <div class="vbg-dots">${['daily','monthly'].map(v=>`<button data-vbv="${v}" class="${vbView===v?'on':''}" aria-label="${v==='daily'?'Daily':'Monthly'} graph"></button>`).join('')}</div></div>`;
   const figs = `<div class="spstats lcr"><div><span>Spends</span><b class="num money">${fINR2(spends)}</b></div><div><span>Investment</span><b class="num money">${fINR2(invested)}</b></div><div><span>Income</span><b class="num money">${fINR2(incoming)}</b></div></div>`;
   const looseRows = loose.map(x=>`<div class="row tap" data-xcat="${esc(x.c)}">${xTile(x.c)}<div class="l"><div class="n">${esc(x.c)}</div><div class="m">No budget</div></div>
       <div class="r"><div class="v num money">${fINR2(x.s)}</div></div></div>`).join('');
-  return `<div class="card tight vbc"><div class="vb-sum"><div><div class="k">Remaining (monthly)</div><div class="big num money ${left<0?'down':''}">${bigAmt(fINR2(left))}</div></div>
+  return `<div class="card tight vbc"><div class="vb-sum"><div><div class="k">${yr ? `Remaining · ${esc(P.y)}${sf}` : 'Remaining (monthly)'}</div><div class="big num money ${left<0?'down':''}">${bigAmt(fINR2(left))}</div>${yr ? `<div class="vbx-y num money">${fINR2(spent)} of ${fINR2(bud)}${sf}${sf ? ` · ${fINR2(budgeted.reduce((a,x)=>a+x.f,0))} for the year` : ''}</div>` : ''}</div>
       <button data-budgets class="bset" aria-label="Budget settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div>
       ${graph}
       ${figs}</div>
@@ -6379,7 +6580,7 @@ function ringsSvg(items, total, colorOf){
 }
 const ringTile = (k, col) => xTile(k).replace('<div class="tile', `<div style="--tile:${tintOf(col)};--tileink:${col}" class="tile`);
 function spMonthlyHtml(){
-  const ym = spMonth, raw = xMonth(ym), exp = personal(raw), invested = Object.entries(raw).filter(([k])=>isConstr(k)).reduce((a,[,v])=>a+v,0), inc = monthIncome(ym);
+  const P = spPeriod('monthly'), ym = P.ymTap, raw = perExp(P), exp = personal(raw), invested = Object.entries(raw).filter(([k])=>isConstr(k)).reduce((a,[,v])=>a+v,0), inc = perInc(P);
   const tE = Object.values(exp).filter(v=>v>0).reduce((a,v)=>a+v,0), tI = xTotal(inc);
   const src = spIO==='inc' ? inc : exp, total = spIO==='inc' ? tI : tE;
   const items = Object.entries(src).filter(([,v])=>v>0).map(([k,v])=>({k,v})).sort((a,b)=>b.v-a.v);
@@ -6389,14 +6590,14 @@ function spMonthlyHtml(){
   // investments from a construction account this month. That second figure is never added
   // to spends, investment or any total; it's here so the month's construction outflow can be checked.
   const cKey = Object.keys(raw).find(isConstr), d0 = xd() || {};
-  const cInv = ym >= (d0.entriesFrom||'') ? (d0.entries||[]).filter(e=>e.date.slice(0,7)===ym && isInvest(e.category) && constrAcc(e.account)).reduce((a,e)=>a+(e.amount||0),0) : 0;
+  const cInv = P.to.slice(0,7) >= (d0.entriesFrom||'') ? (d0.entries||[]).filter(e=>e.date>=P.from && e.date<=P.to && isInvest(e.category) && constrAcc(e.account)).reduce((a,e)=>a+(e.amount||0),0) : 0;
   const cRows = (invested>0 ? `<div class="row tap" data-xcat="${esc(cKey)}" data-ymc="${ym}">${xTile(cKey)}
       <div class="l"><div class="n">${esc(cKey)}</div><div class="m">From the construction fund</div></div><div class="r"><div class="v num money">${fINR2(invested)}</div></div></div>` : '')
     + (cInv>0 ? `<div class="row">${xTile('Investment')}
       <div class="l"><div class="n">Investment</div><div class="m">Not counted in spends</div></div><div class="r"><div class="v num money">${fINR2(cInv)}</div></div></div>` : '');
   const invRow = spIO==='exp' && cRows ? `<div class="sechead"><h2>Construction</h2>${invested>0 && cInv>0 ? `<span class="cnt num money">${fINR2(invested+cInv)}</span>` : ''}</div><div class="card tight">${cRows}</div>` : '';
-  const wrapBtn = spIO==='exp' && ym <= ymNow() ? `<button class="spwrap" data-wrapym="${ym}"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>${esc(ymDate(ym).toLocaleDateString('en-GB',{month:'long'}))} wrapped</button>` : '';
-  if (!items.length) return tabs + `<div class="card"><div class="empty">${spIO==='inc'?'No income recorded':'Nothing spent'} in ${esc(ymLabel(ym))}</div></div>` + invRow;
+  const wrapBtn = P.k==='month' && spIO==='exp' && ym <= ymNow() ? `<button class="spwrap" data-wrapym="${ym}"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>${esc(ymDate(ym).toLocaleDateString('en-GB',{month:'long'}))} wrapped</button>` : '';
+  if (!items.length) return tabs + `<div class="card"><div class="empty">${spIO==='inc'?'No income recorded':'Nothing spent'} in ${esc(P.label)}</div></div>` + invRow;
   const top = items[0].v;
   const rows = items.map(it=>{
     const pct = Math.round(it.v/total*100), col = spIO==='exp' ? catCol(it.k) : 'var(--up)';

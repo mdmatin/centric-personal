@@ -608,6 +608,7 @@ html[data-theme=dark] .mpick-g button,html[data-theme=dark] .mpick-h button{back
 .vbg-lg i{display:inline-block;width:12px;border-top:2px solid var(--blue);vertical-align:middle;margin-right:5px}
 .vbg-lg i.dots{border:0;height:8px;background:radial-gradient(var(--ink-3) .8px,transparent 1px) 0 0/4px 4px}
 .vbg-dots{display:flex;gap:2px;margin-left:auto}
+.vbg-fit{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--blue);padding:2px 2px}.vbg-fit[hidden]{display:none}.vbg-fit svg{width:14px;height:14px}.vbg-fit:not([hidden])+.vbg-dots{margin-left:10px}
 .vbg-dots button{width:16px;height:16px;display:grid;place-items:center;padding:0}
 .vbg-dots button::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--ink-3);opacity:.5}
 .vbg-dots button.on::after{background:var(--ink);opacity:1}
@@ -2308,7 +2309,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-14u';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-14v';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -6133,7 +6134,13 @@ function renderSpend(){
   if (spSec==='budget'){
     const setV = v => { if (v===vbView) return; vbView=v; save('inv.vbView',vbView); const y=window.scrollY; renderSpend(); window.scrollTo(0,y); };
     $$('#spBody [data-vbv]').forEach(b=>b.onclick=()=>setV(b.dataset.vbv));
+    $$('#spBody [data-vbfit]').forEach(b=>b.onclick=()=>{ vbFit = !vbFit; drawBudgetChart(); });
     drawBudgetChart();
+    // pinch the graph: in to zoom out (whole line fits), out to zoom back to the budget view
+    { const g = $('#spBody .vbg-ch'); if (g){ let d0 = 0; const dist = t => Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY);
+      g.addEventListener('touchstart', e=>{ d0 = e.touches.length===2 ? dist(e.touches) : 0; }, {passive:true});
+      g.addEventListener('touchmove', e=>{ if (!d0 || e.touches.length!==2) return; e.preventDefault(); const r = dist(e.touches)/d0;
+        if ((r < .8 && !vbFit) || (r > 1.25 && vbFit)){ vbFit = !vbFit; d0 = 0; drawBudgetChart(); } }, {passive:false}); } }
     // a quick sideways swipe on the graph switches Daily ↔ Monthly; a slow drag still reads values
     const ch = $('#spBody .vbg-ch');
     if (ch){ let sx=0, sy=0, st=0;
@@ -6153,7 +6160,10 @@ let xQuery = '';
 /* Budget — like Money Manager, compact: what's left this month, then one row
    per category: budget on the left, a bar that fills with what's been spent
    (red past 100%), spent and left under it. The thin line is today. */
-let vbView = load('inv.vbView') || 'daily', vbData = null;
+let vbView = load('inv.vbView') || 'daily', vbData = null, vbFit = false;   // vbFit: zoomed out so the whole line fits
+// the graph's Zoom out / Zoom in button: shown when a line runs off the top (or while zoomed out)
+const vbFitBtn = need => { const b = $('#spBody [data-vbfit]'); if (!b) return; b.hidden = !(need || vbFit);
+  b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20 20M7.5 10.5h6${vbFit ? 'M10.5 7.5v6' : ''}"/></svg>${vbFit ? 'Zoom in' : 'Zoom out'}`; };
 // Category mood: a little face on each budgeted icon. Pace = share of budget used vs share of month gone
 function moodFace(u, today){
   const pace = today ? u/Math.max(today,.05) : u, k = u > 1 ? 'dead' : (pace > 1.1 || u >= .9) ? 'sweat' : pace < .6 ? 'smug' : 'ok';
@@ -6204,7 +6214,7 @@ function spBudgetHtml(){
   const incoming = xTotal(yr ? perInc(P) : monthIncome(ym));
   const graph = yr ? '' : `<div class="vbg-ch" aria-label="Spending graph — swipe for ${vbView==='daily'?'monthly':'daily'}"><svg></svg><div class="tip"></div></div>
       <div class="vbg-ft">${vbView==='daily' ? `<div class="vbg-lg"><span><i></i>This month</span><span><i class="dots"></i>Last month</span></div>` : ''}
-        <div class="vbg-dots">${['daily','monthly'].map(v=>`<button data-vbv="${v}" class="${vbView===v?'on':''}" aria-label="${v==='daily'?'Daily':'Monthly'} graph"></button>`).join('')}</div></div>`;
+        <button class="vbg-fit" data-vbfit hidden></button><div class="vbg-dots">${['daily','monthly'].map(v=>`<button data-vbv="${v}" class="${vbView===v?'on':''}" aria-label="${v==='daily'?'Daily':'Monthly'} graph"></button>`).join('')}</div></div>`;
   const figs = `<div class="spstats lcr"><div><span>Spends</span><b class="num money">${fINR2(spends)}</b></div><div><span>Investment</span><b class="num money">${fINR2(invested)}</b></div><div><span>Income</span><b class="num money">${fINR2(incoming)}</b></div></div>`;
   const looseRows = loose.map(x=>`<div class="row tap" data-xcat="${esc(x.c)}">${xTile(x.c)}<div class="l"><div class="n">${esc(x.c)}</div><div class="m">No budget</div></div>
       <div class="r"><div class="v num money">${fINR2(x.s)}</div></div></div>`).join('');
@@ -6260,7 +6270,8 @@ function drawBudgetChart(){
     const cMax = cur.length ? cur[cur.length-1] : 0, pMax = prev ? prev[prev.length-1] : 0;
     // the graph always runs to twice the budget, so the dashed budget line sits at mid-height;
     // a month (this one or last) that goes past that runs off the top with its amount as a label
-    const mx = D0.bud*2, cap = cMax > mx, capP = pMax > mx;
+    const mx = vbFit ? Math.max(cMax, pMax, D0.bud)*1.08 : D0.bud*2, cap = cMax > mx, capP = pMax > mx;   // zoomed out: everything fits
+    vbFitBtn(Math.max(cMax, pMax) > D0.bud*2);
     const x = i => dim>1 ? 4 + i/(dim-1)*(W-8) : W/2, y = v => Math.max(-3, Hp - v/mx*(Hp-4));
     const L = a => a.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(v).toFixed(1)).join('');
     const lx = x(Math.max(0,cur.length-1));
@@ -6292,7 +6303,8 @@ function drawBudgetChart(){
     return { m, b: withB.reduce((a,c)=>a+xBudget(c,m),0), s: withB.reduce((a,c)=>a+Math.max(0,o[c]||0),0) };
   });
   const tops = ms.map(v=>Math.max(v.b,v.s)), big = Math.max(...tops, 1), bi = tops.indexOf(big);
-  const rest = Math.max(...tops.filter((_,i)=>i!==bi), ...ms.map(v=>v.b), 1), cap = big > rest*2;
+  const rest = Math.max(...tops.filter((_,i)=>i!==bi), ...ms.map(v=>v.b), 1), cap = !vbFit && big > rest*2;
+  vbFitBtn(big > rest*2);
   const mx = cap ? rest*1.3 : big*1.12, n = ms.length, bw = Math.min(26, W/(n*1.9)), gap = (W - 8 - n*bw)/(n-1);
   const bx = i => 4 + i*(bw+gap), y = v => Hp - Math.min(v,mx)/mx*(Hp-4);
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);

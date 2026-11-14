@@ -850,9 +850,10 @@ html[data-theme=dark] .xfresh{background:rgba(41,151,255,.28);box-shadow:0 0 0 3
 /* the add / edit form is a full page: Cancel on the left, the title centred */
 #xsheet{display:flex;flex-direction:column;top:0;bottom:0;height:auto;max-height:none;border-radius:0;overflow:hidden;padding:calc(6px + env(safe-area-inset-top)) 0 0;background:var(--parchment)}
 #xsheet .grab{display:none}
-.xhd{position:relative;display:flex;justify-content:flex-end;align-items:center;min-height:44px;padding:0 16px 8px;flex:none}
-#xsheet .xhd h3{position:absolute;left:50%;top:calc(50% - 4px);transform:translate(-50%,-50%);display:block;font-family:var(--font-disp);font-size:17px;font-weight:600;letter-spacing:-.4px;margin:0;white-space:nowrap}
-.xhd button{font-size:17px;color:var(--blue)}
+.xhd{position:relative;display:flex;justify-content:space-between;align-items:center;min-height:44px;padding:4px 20px 12px;flex:none}   /* like New transaction: big title on the left, Cancel on the right */
+#xsheet .xhd h3{display:block;font-family:var(--font-disp);font-size:22px;font-weight:600;letter-spacing:-.5px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xhd button{font-size:17px;color:var(--blue);font-weight:400;letter-spacing:-.374px;flex:none;margin-left:12px}
+.sheet .xhd h3{margin:0}   /* not the form sheet's own h3 spacing */
 .xscroll{flex:1;min-height:0;overflow:auto;padding:0 16px 16px;overscroll-behavior:contain}
 .xseg{margin-bottom:10px}
 .xpanel{flex:none;background:var(--parchment);border-top:1px solid var(--hairline);padding-bottom:env(safe-area-inset-bottom)}
@@ -1237,6 +1238,9 @@ html[data-theme=dark] .tabs svg{opacity:1}
 .grab::after{content:'';position:absolute;left:-60px;right:-60px;top:-12px;bottom:-10px}
 .sheet h3{font-family:var(--font-disp);margin:0 4px 14px;font-size:22px;font-weight:600;letter-spacing:-.5px;display:flex;justify-content:space-between;align-items:center}
 .sheet h3 button{font-size:17px;color:var(--blue);font-weight:400;letter-spacing:-.374px}
+/* the transaction form opens full page, like the add screen (its title keeps its own size and place) */
+#sheet{top:0;bottom:0;height:auto;max-height:none;border-radius:0;padding-top:calc(10px + env(safe-area-inset-top))}
+#sheet .grab{display:none}
 .seg{display:flex;background:var(--sunken);border-radius:var(--r-mid);padding:3px;margin-bottom:14px}
 .seg button{flex:1;padding:8px;border-radius:11px;font-weight:600;font-size:15px;color:var(--ink-2)}
 .seg button.on{background:var(--canvas);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -2542,7 +2546,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-12s';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-12t';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };

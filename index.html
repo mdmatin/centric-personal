@@ -850,7 +850,7 @@ html[data-theme=dark] .xfresh{background:rgba(41,151,255,.28);box-shadow:0 0 0 3
 /* the add / edit form is a full page: Cancel on the left, the title centred */
 #xsheet{display:flex;flex-direction:column;top:0;bottom:0;height:auto;max-height:none;border-radius:0;overflow:hidden;padding:calc(6px + env(safe-area-inset-top)) 0 0;background:var(--parchment)}
 #xsheet .grab{display:none}
-.xhd{position:relative;display:flex;justify-content:flex-start;align-items:center;min-height:44px;padding:0 16px 8px;flex:none}
+.xhd{position:relative;display:flex;justify-content:flex-end;align-items:center;min-height:44px;padding:0 16px 8px;flex:none}
 #xsheet .xhd h3{position:absolute;left:50%;top:calc(50% - 4px);transform:translate(-50%,-50%);display:block;font-family:var(--font-disp);font-size:17px;font-weight:600;letter-spacing:-.4px;margin:0;white-space:nowrap}
 .xhd button{font-size:17px;color:var(--blue)}
 .xscroll{flex:1;min-height:0;overflow:auto;padding:0 16px 16px;overscroll-behavior:contain}
@@ -2542,7 +2542,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-12r';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-12s';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };

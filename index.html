@@ -1555,6 +1555,9 @@ body.paged{overflow:hidden}
 .pg-step button svg{width:18px;height:18px}
 .pg-step button:disabled{color:var(--ink-3);opacity:.45}
 .pg-id .cstep{align-self:flex-start;flex:none}
+.pg-head .cstep{flex:none}
+.pg-id.xid{gap:14px}.pg-id.xid .tile{flex-basis:52px;width:52px;height:52px}.pg-id.xid .pg-big{font-size:28px;letter-spacing:-.8px;margin:0 0 3px}.pg-id.xid .xbud{margin:0}.xtbar{margin-top:16px}
+.sechead .cnt.xsubt{font-size:17px;font-weight:600;color:var(--ink);letter-spacing:-.3px}   /* category page: the month's total beside its breakdown */
 .pg-card{margin-top:6px}
 .pg-id{display:flex;align-items:center;gap:12px}
 .pg-id .tile{flex-basis:46px;width:46px;height:46px}
@@ -2309,7 +2312,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-14v';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-15w';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -5131,7 +5134,7 @@ function stepper(p){
       <button data-step="1" aria-label="Next" ${i>=p.list.length-1?'disabled':''}>${arrow('M9 5l7 7-7 7')}</button></div>`;
 }
 function pageTitle(p){ return p.kind==='league' ? 'XIRR League' : p.kind==='xsearch' ? 'Search' : p.kind==='platlist' ? 'Platforms' : p.kind==='bklist' ? 'Buckets' : p.kind==='holding' ? p.ticker : p.kind==='bucket' ? p.bucket : p.kind==='dividends' ? 'Dividends'
-  : p.kind==='expcat' || p.kind==='inccat' ? p.cat : p.kind==='budgets' ? 'Budgets' : p.kind==='acct' ? accPageTitle(p.acc) : p.kind==='zakat' ? 'Zakat' : p.kind==='interest' ? 'Interest' : p.kind==='intq' ? 'Interest' : p.kind==='constr' ? 'Construction' : p.kind==='epf' ? 'EPF' : p.kind==='nps' ? 'NPS' : p.kind==='tax' ? 'Tax' : p.kind==='books' ? 'Books' : p.kind==='bklog' ? 'Activity'
+  : p.kind==='expcat' ? 'Category' : p.kind==='inccat' ? 'Income' : p.kind==='budgets' ? 'Budgets' : p.kind==='acct' ? accPageTitle(p.acc) : p.kind==='zakat' ? 'Zakat' : p.kind==='interest' ? 'Interest' : p.kind==='intq' ? 'Interest' : p.kind==='constr' ? 'Construction' : p.kind==='epf' ? 'EPF' : p.kind==='nps' ? 'NPS' : p.kind==='tax' ? 'Tax' : p.kind==='books' ? 'Books' : p.kind==='bklog' ? 'Activity'
   : p.kind==='accform' ? (p.acc ? 'Edit account' : 'New account') : p.kind==='profile' ? 'Profile' : p.kind==='defaults' ? 'Defaults' : p.kind==='recurring' ? 'Recurring' : p.kind==='recdetail' ? 'Details' : p.kind==='recform' ? (p.id ? 'Edit recurring' : 'New recurring') : p.platform; }
 // Payouts logged on the US Stocks tab for one ticker, newest first
 function divsFor(ticker){
@@ -5182,7 +5185,7 @@ function renderPage(){
       <button class="pg-back" id="pgBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg><span>${esc(back)}</span></button>
       <div class="pg-title">${esc(pageTitle(p))}</div>${p.kind==='recurring' ? '<button class="pg-add" id="pgAdd" aria-label="Add recurring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>'
         : p.kind==='recdetail' ? '<button class="pg-edit" id="pgEdit">Edit</button>'
-        : p.kind==='books' ? `<button class="pg-add ${booksBusy?'spin':''}" id="pgRefresh" aria-label="Check again"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>` : stepper(p)}</div>` + body;
+        : p.kind==='books' ? `<button class="pg-add ${booksBusy?'spin':''}" id="pgRefresh" aria-label="Check again"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>` : p.kind==='expcat' || p.kind==='inccat' ? catStep(p) : stepper(p)}</div>` + body;
   $('#pgBack').onclick = popPage;
   if (p.kind==='league'){ wireLeague(p); return; }
   if (p.kind==='platlist'){ renderPlatforms(D.data.buckets, '#pgPlatList'); return; }
@@ -6794,6 +6797,12 @@ function spListHtml(){
 }
 
 /* ---------- category page ---------- */
+// the Budget page's bar: tinted fill with a coloured edge, a tick at today, then % used and left / over
+function catBar(cat, spent, bud, today){
+  const u = spent/bud, over = spent > bud, col = over ? 'var(--over)' : catCol(cat);
+  return `<div class="tbar xtbar" style="--c:${col}"><i style="width:${Math.min(100,u*100).toFixed(1)}%"></i>${today!=null?`<em style="left:${(today*100).toFixed(1)}%"></em>`:''}</div>
+    <div class="vbx-m"><span class="num ${over?'down':''}">${Math.round(u*100)}% used</span><span class="num money ${over?'down':''}">${fINR2(Math.abs(bud-spent))} ${over?'over':'left'}</span></div>`;
+}
 function expcatBody(p){
   if (p.yr) return expcatYearBody(p);
   const cat = p.cat, ym = p.ym, o = xMonth(ym), spent = o[cat]||0, bud = xBudget(cat, ym);
@@ -6816,16 +6825,15 @@ function expcatBody(p){
       <b data-mpick role="button">${esc(ymLabel(ym))}<svg class="mcaret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></b>
       <button data-pym="1" aria-label="Next month" ${ym>=ymNow()?'disabled':''}>${chev('M9 5l7 7-7 7')}</button></div>`;
   return sw + `<div class="card pg-card pg-hero">
-      <div class="pg-id">${xTile(cat)}<div class="grow"><div class="t">${esc(cat)}</div><div class="s">${esc(ymLabel(ym))} · ${list.length} expense${list.length===1?'':'s'}</div></div>${catStep(p)}</div>
-      <div class="pg-big num money">${bigAmt(fINR2(spent))}</div>
-      <button class="xbud num money" data-bedit>${bud ? `of ${fINR2(bud)} budget${hasOverride?' (this month)':''}` : 'Set a budget'}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>
+      <div class="pg-id xid">${xTile(cat)}<div class="grow"><div class="t">${esc(cat)}</div>
+      <button class="xbud num money" data-bedit>${bud ? `Budget ${fINR2(bud)}${hasOverride?' (this month)':''}` : 'Set a budget'}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button></div></div>
       ${ed}
-      ${bud ? pbar(spent/bud) : ''}
+      ${bud ? catBar(cat, spent, bud, ym===ymNow() ? new Date().getDate()/new Date(+ym.slice(0,4), +ym.slice(5,7), 0).getDate() : null) : ''}
       ${chart}
     </div>
-    ${subRows ? `<div class="sechead"><h2>By subcategory</h2></div><div class="card hstats xsubs">${subRows}</div>` : ''}
-    <div class="sechead"><h2>Expenses</h2></div>
+    ${subRows ? `<div class="sechead"><h2>By subcategory</h2><span class="cnt num money xsubt">${fINR2(spent)}</span></div><div class="card hstats xsubs">${subRows}</div>` : ''}
+    <div class="sechead"><h2>Expenses</h2>${subRows ? '' : `<span class="cnt num money xsubt">${fINR2(spent)}</span>`}</div>
     ${list.length ? xDayGroups(list.map(e=>constrMoney(e) ? { ...e, _cn:true } : e), false) : '<div class="card tight"><div class="empty">Nothing in this category this month</div></div>'}`;   // paid from a construction account: listed, not in the total
 }
 
@@ -6848,15 +6856,14 @@ function expcatYearBody(p){
       <button data-pyy="1" aria-label="Next year" ${y>=cy?'disabled':''}>${chev('M9 5l7 7-7 7')}</button></div>`;
   const over = bud && spent > bud;
   return sw + `<div class="card pg-card pg-hero">
-      <div class="pg-id">${xTile(cat)}<div class="grow"><div class="t">${esc(cat)}</div><div class="s">${esc(y)}${sf?' so far':''}${partial ? '' : ` · ${list.length} expense${list.length===1?'':'s'}`}</div></div>${catStep(p)}</div>
-      <div class="pg-big num money">${bigAmt(fINR2(spent))}</div>
-      <div class="xbud static num money">${bud ? `of ${fINR2(bud)} budget${sf ? ' so far' : ''}` : 'No budget'}</div>
-      ${bud && (sf || over) ? `<div class="vbx-y num money">${sf ? `${tipS(full, fCompact(full))} for the year` : ''}${sf && over ? ' · ' : ''}${over ? `<span class="down">${tipS(spent-bud, fCompact(spent-bud))} over</span>` : ''}</div>` : ''}
-      ${bud ? pbar(spent/bud) : ''}
+      <div class="pg-id xid">${xTile(cat)}<div class="grow"><div class="t">${esc(cat)}</div>
+      <div class="xbud static num money">${bud ? `Budget ${fINR2(bud)}${sf ? ' so far' : ''}` : 'No budget'}</div></div></div>
+      ${bud ? catBar(cat, spent, bud, null) : ''}
+      ${bud && sf ? `<div class="vbx-y num money">${tipS(full, fCompact(full))} budget for the year</div>` : ''}
       ${chart}
     </div>
-    ${subRows ? `<div class="sechead"><h2>By subcategory</h2></div><div class="card hstats xsubs">${subRows}</div>` : ''}
-    <div class="sechead"><h2>By month</h2></div>
+    ${subRows ? `<div class="sechead"><h2>By subcategory</h2><span class="cnt num money xsubt">${fINR2(spent)}</span></div><div class="card hstats xsubs">${subRows}</div>` : ''}
+    <div class="sechead"><h2>By month</h2>${subRows ? '' : `<span class="cnt num money xsubt">${fINR2(spent)}</span>`}</div>
     <div class="card tight ctab"><div class="lh"><span>Month</span><span>Of budget</span><span>Expense</span></div>${rows}</div>`;
 }
 
@@ -6906,13 +6913,12 @@ function inccatBody(p){
       <div class="l"><div class="n">${esc(e.source || e.type || 'Income')}</div><div class="m">${[e.account, e.remark, fDate(e.date)].filter(Boolean).map(esc).join(' · ')}</div></div>
       <div class="r"><div class="v num money up">${fINR2(e.amount)}</div>${e.tax?`<div class="s num money">tax ${fINR2(e.tax)}</div>`:''}</div></button>`).join('');
   return sw + `<div class="card pg-card pg-hero">
-      <div class="pg-id">${xtTile(t)}<div class="grow"><div class="t">${esc(t)}</div><div class="s">${esc(ymLabel(ym))} · ${list.length} entr${list.length===1?'y':'ies'}</div></div>${catStep(p)}</div>
-      <div class="pg-big num money">${bigAmt(fINR2(total))}</div>
-      <div class="xbud num money" style="pointer-events:none">Last 12 months ${fINR2(yearTot)}</div>
+      <div class="pg-id xid">${xtTile(t)}<div class="grow"><div class="t">${esc(t)}</div>
+      <div class="xbud num money" style="pointer-events:none">Last 12 months ${fINR2(yearTot)}</div></div></div>
       ${chart}
     </div>
-    ${srcRows ? `<div class="sechead"><h2>By company</h2></div><div class="card hstats xsubs">${srcRows}</div>` : ''}
-    <div class="sechead"><h2>Entries</h2></div>
+    ${srcRows ? `<div class="sechead"><h2>By company</h2><span class="cnt num money xsubt">${fINR2(total)}</span></div><div class="card hstats xsubs">${srcRows}</div>` : ''}
+    <div class="sechead"><h2>Entries</h2>${srcRows ? '' : `<span class="cnt num money xsubt">${fINR2(total)}</span>`}</div>
     ${rows ? `<div class="card tight">${rows}</div>` : '<div class="card tight"><div class="empty">Nothing of this type this month</div></div>'}`;
 }
 

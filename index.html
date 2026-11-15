@@ -2348,7 +2348,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-15ac';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-15ad';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -6887,8 +6887,10 @@ function catMonthBars(months, vals, sel, budFn, col0){
   const buds = months.map(m=>budFn ? budFn(m)||0 : 0);
   // one huge month (a yearly bill, a surgery) would flatten every other bar: when the biggest is far above
   // the rest, the scale follows the rest and that bar runs to the top with a break in it
-  const hi = vals.filter(v=>v>0).sort((a,b)=>b-a), rest = Math.max(hi[1]||0, ...buds), cut = hi.length > 1 && hi[0] > rest * 2.5;
-  const mx = Math.max(1, cut ? rest * 1.35 : Math.max(hi[0]||0, ...buds)) * 1.04;
+  // any month far above a normal one (8× the middle month, and well past the budget) is clipped, however many there are
+  const pos = vals.filter(v=>v>0).sort((a,b)=>a-b), med = pos.length ? pos[Math.floor((pos.length-1)/2)] : 0, bmax = Math.max(0, ...buds);
+  const lim = Math.max(bmax * 1.5, med * 8), keep = pos.filter(v=>v<=lim), cut = pos.length > 2 && keep.length < pos.length;
+  const mx = Math.max(1, cut ? Math.max(keep[keep.length-1]||0, bmax) * 1.25 : Math.max(pos[pos.length-1]||0, bmax)) * 1.04;
   const y = v => top + ph - v/mx*ph, x0 = i => i*W + (W-bw)/2;
   let si = -1;
   const g = [0,1,2].map(k=>`<line class="grid" x1="0" x2="${w}" y1="${(top + ph*k/2).toFixed(1)}" y2="${(top + ph*k/2).toFixed(1)}"/>`).join('');

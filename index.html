@@ -1492,6 +1492,7 @@ html[data-theme=dark] .bkpill .bk-ic.iq,html[data-theme=dark] .zqh .bk-ic.iq{bac
 .ccchart .ccb text{font-size:10px;fill:var(--ink-3)}.ccchart .ccb.on text{fill:var(--ink);font-weight:700}
 .ccchart .avg{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 3}.ccchart .avgt{font-size:9.5px;fill:var(--ink-3)}
 .cccats{margin:10px -16px 0;border-top:1px solid var(--hairline)}
+.cccats .row{padding-left:16px;padding-right:16px}
 .ccc{display:flex;align-items:center;gap:12px;padding:11px 16px}.ccc+.ccc{border-top:.5px solid var(--hairline)}
 .ccc .l{flex:1;min-width:0}.ccc .n{display:flex;justify-content:space-between;font-size:15px;letter-spacing:-.2px}.ccc .n b{font-weight:600}
 .ccc .bar{height:4px;border-radius:2px;background:var(--sunken);margin:6px 0 4px;overflow:hidden}.ccc .bar i{display:block;height:100%;border-radius:2px;background:var(--blue)}
@@ -2346,7 +2347,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-15z';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-15aa';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -6882,15 +6883,20 @@ function shareRows(o, total, col, sel){   // sel: the parts the list below is na
 function catMonthBars(months, vals, sel, budFn, col0){
   const K = v => { v = Math.round(v||0); return v ? (v/1000).toFixed(Math.abs(v)>=1e4?0:1).replace(/\.0$/,'')+'k' : '0'; };
   const W = 50, H = 128, top = 18, bot = 24, ph = H - top - bot, w = months.length * W, bw = 24;
-  const buds = months.map(m=>budFn ? budFn(m)||0 : 0), mx = Math.max(1, ...vals, ...buds) * 1.04;
+  const buds = months.map(m=>budFn ? budFn(m)||0 : 0);
+  // one huge month (a yearly bill, a surgery) would flatten every other bar: when the biggest is far above
+  // the rest, the scale follows the rest and that bar runs to the top with a break in it
+  const hi = vals.filter(v=>v>0).sort((a,b)=>b-a), rest = Math.max(hi[1]||0, ...buds), cut = hi.length > 1 && hi[0] > rest * 2.5;
+  const mx = Math.max(1, cut ? rest * 1.35 : Math.max(hi[0]||0, ...buds)) * 1.04;
   const y = v => top + ph - v/mx*ph, x0 = i => i*W + (W-bw)/2;
   let si = -1;
   const g = [0,1,2].map(k=>`<line class="grid" x1="0" x2="${w}" y1="${(top + ph*k/2).toFixed(1)}" y2="${(top + ph*k/2).toFixed(1)}"/>`).join('');
   const bars = months.map((m,i)=>{ const v = vals[i], b = buds[i], on = sel==null || m===sel, over = b && v > b, c = over ? 'var(--over)' : col0; if (m===sel) si = i;
-    const h = Math.max(v ? 3 : 0, top + ph - y(v));
+    const big = v > mx, h = v > 0 ? Math.max(3, top + ph - y(Math.min(v, mx))) : 0;   // a refund-heavy month nets below zero: no bar, just its figure
     return `<rect x="${x0(i)}" y="${(top+ph-h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="6" fill="color-mix(in srgb, ${c} ${on?32:14}%, var(--canvas))" stroke="${c}" stroke-width="${on?1.6:1}" stroke-opacity="${on?1:.45}"/>
+      ${big ? `<path d="M${x0(i)-2},${top+12}l${bw/2+2},-5l${bw/2+2},5" fill="none" stroke="var(--canvas)" stroke-width="4"/><path d="M${x0(i)-2},${top+12}l${bw/2+2},-5l${bw/2+2},5" fill="none" stroke="${c}" stroke-width="1.2" opacity=".6"/>` : ''}
       ${b ? `<line x1="${x0(i)-5}" x2="${x0(i)+bw+5}" y1="${y(b).toFixed(1)}" y2="${y(b).toFixed(1)}" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" opacity="${on?.9:.35}"/>` : ''}
-      <text class="lv ${on?'on':''} ${over?'over':''}" x="${x0(i)+bw/2}" y="${(Math.min(y(v), b ? y(b) : y(v)) - 7).toFixed(1)}" text-anchor="middle">${K(v)}</text>
+      <text class="lv ${on?'on':''} ${over?'over':''}" x="${x0(i)+bw/2}" y="${(Math.min(y(Math.max(0, Math.min(v, mx))), b ? y(b) : top+ph) - 7).toFixed(1)}" text-anchor="middle">${K(v)}</text>
       <text class="lm ${m===sel?'on':''}" x="${x0(i)+bw/2}" y="${H-6}" text-anchor="middle">${ymShort(m).slice(0,3)}${m.slice(5)==='01'||i===0?` ’${m.slice(2,4)}`:''}</text>
       <rect class="hit" data-mbym="${m}" x="${i*W}" y="0" width="${W}" height="${H}"/>`; }).join('');
   return `<div class="mbscroll lscroll cxscroll" data-sel="${si}" data-w="${W}"><svg class="lchart" width="${w}" height="${H}" viewBox="0 0 ${w} ${H}">${g}${bars}</svg></div>
@@ -7930,9 +7936,9 @@ function ccSpendHtml(a, p, moves){
         <div class="ccbig num money">${bigAmt(fINR2(cur))}</div>
         <div class="ccsub">${n ? `${n} purchase${n===1?'':'s'}` : 'No purchases'}${vs ? ' · ' + vs : ''}</div></div></div>
     <svg class="ccchart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${avgLine}${bars}</svg>
-    ${cats.length ? `<div class="cccats">${showC.map(c=>`<div class="ccc">${xTile(c.c)}<div class="l"><div class="n"><span>${esc(c.c)}</span><b class="num money">${fINR2(c.t)}</b></div>
-        <div class="bar"><i style="width:${Math.max(2, c.t/cmx*100).toFixed(1)}%"></i></div>
-        <div class="m"><span>${c.n} purchase${c.n===1?'':'s'}</span><span>${Math.round(c.t/(cur||1)*100)}%</span></div></div></div>`).join('')}
+    ${cats.length ? `<div class="cccats mcbars">${showC.map(c=>{ const pct = Math.round(c.t/(cur||1)*100);   // the Stats page's row: tap for the category's page for this month
+        return `<div class="row tap prow" data-xcat="${esc(c.c)}" data-ymc="${sel}">${xTile(c.c)}
+        <div class="l"><div class="n">${esc(c.c)}</div><div class="tbar" style="--c:${catCol(c.c)}"><i style="width:${Math.max(2, c.t/cmx*100).toFixed(1)}%"></i></div></div><div class="r"><div class="v num money">${fINR2(c.t)}</div><div class="s">${pct<1?'<1':pct}%</div></div></div>`; }).join('')}
       ${cats.length > 4 ? `<button class="more" data-cccat>${p.ccCatAll ? 'Show fewer' : 'Show all ' + cats.length + ' categories'}</button>` : ''}</div>` : ''}
     ${big ? `<div class="ccbigbuy"><span>Biggest</span><b>${esc(big.title)}</b><span class="num money">${fINR2(-big.amt)} · ${esc(fDate(big.date))}</span></div>` : ''}
   </div>`;
@@ -8369,10 +8375,15 @@ function wireAccPage(p){
   const ea = $('#page [data-editacc]'); if (ea) ea.onclick = ()=>{ p.accMenu = false; pushPage({ kind:'accform', acc:p.acc }); };
   // dismissing also clears the warning behind this page (the Accounts list and its pill) and the tab's dot
   const bd = $('#page [data-bkdis]'); if (bd) bd.onclick = ()=>{ bankDismiss(p.acc); rerender(); renderSpend(); if (typeof paintBooks==='function') paintBooks(); };
-  $$('#page [data-ccm]').forEach(b=>b.onclick=()=>{ p.ccm = b.dataset.ccm; rerender(); });
-  $$('#page [data-ccs]').forEach(b=>b.onclick=()=>{ p.ccm = ymAdd(p.ccm || ymNow(), Number(b.dataset.ccs)); p.actN = 12; rerender(); });
-  $$('#page [data-cct]').forEach(b=>b.onclick=()=>{ p.ccTab = b.dataset.cct; rerender(); });
+  // stepping months keeps the Transactions box at least as tall as it has been, so a quiet month
+  // doesn't shrink the page and pull everything up under your finger; a tab change lets it size afresh
+  const box = $('#page .ccbox'); if (box && p.ccBoxH) box.style.minHeight = p.ccBoxH + 'px';
+  const keepBox = () => { const b = $('#page .ccbox'); if (b) p.ccBoxH = Math.max(p.ccBoxH||0, b.offsetHeight); };
+  $$('#page [data-ccm]').forEach(b=>b.onclick=()=>{ keepBox(); p.ccm = b.dataset.ccm; rerender(); });
+  $$('#page [data-ccs]').forEach(b=>b.onclick=()=>{ keepBox(); p.ccm = ymAdd(p.ccm || ymNow(), Number(b.dataset.ccs)); p.actN = 12; rerender(); });
+  $$('#page [data-cct]').forEach(b=>b.onclick=()=>{ p.ccTab = b.dataset.cct; p.ccBoxH = 0; rerender(); });
   const cc = $('#page [data-cccat]'); if (cc) cc.onclick = ()=>{ p.ccCatAll = !p.ccCatAll; rerender(); };
+  $$('#page .cccats [data-xcat]').forEach(r=>r.onclick=()=>pushPage({ kind:'expcat', cat:r.dataset.xcat, ym:r.dataset.ymc }));
   const cba = $('#page [data-cball]'); if (cba) cba.onclick = ()=>{ p.cbAll = !p.cbAll; rerender(); };
   const zia = $('#page [data-ziall]'); if (zia) zia.onclick = ()=>{ p.ziAll = !p.ziAll; rerender(); };
   const wireMore = () => { const am2 = $('#page [data-actmore]'); if (am2) am2.onclick = ()=>{ p.actN = (p.actN||12) + 20; rerender(); }; };

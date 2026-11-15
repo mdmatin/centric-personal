@@ -1487,10 +1487,11 @@ html[data-theme=dark] .bkpill .bk-ic.iq,html[data-theme=dark] .zqh .bk-ic.iq{bac
 .ccsp .k{font-size:13px;color:var(--ink-2);letter-spacing:-.1px}
 .ccsp .ccbig{font-family:var(--font-disp);font-size:30px;font-weight:600;letter-spacing:-.9px;line-height:1.15;margin-top:2px}
 .ccsp .ccsub{font-size:13px;color:var(--ink-2);margin-top:3px;letter-spacing:-.1px}.ccsp .ccsub .up{color:var(--up)}.ccsp .ccsub .down{color:var(--down)}
-.ccchart{width:100%;height:120px;display:block;margin:16px 0 4px;overflow:visible}
+.ccchart{width:100%;height:auto;display:block;margin:12px 0 4px;overflow:visible}
 .ccchart .ccb{cursor:pointer}.ccchart .ccb path{fill:var(--blue);opacity:.25;transition:opacity .15s}.ccchart .ccb.on path{opacity:1}
 .ccchart .ccb text{font-size:10px;fill:var(--ink-3)}.ccchart .ccb.on text{fill:var(--ink);font-weight:700}
-.ccchart .avg{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 3}.ccchart .avgt{font-size:9.5px;fill:var(--ink-3)}
+.ccchart .avg{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 3}.ccchart .avgt{font-size:10px;font-weight:600;fill:var(--ink-2);paint-order:stroke;stroke:var(--canvas);stroke-width:3px;stroke-linejoin:round}
+.ccchart .ccv{font-size:10px;font-weight:600;fill:var(--ink-3)}.ccchart .ccb.on .ccv{fill:var(--ink)}
 .cccats{margin:10px -16px 0;border-top:1px solid var(--hairline)}
 .cccats .row{padding-left:16px;padding-right:16px}
 .ccc{display:flex;align-items:center;gap:12px;padding:11px 16px}.ccc+.ccc{border-top:.5px solid var(--hairline)}
@@ -2347,7 +2348,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-15ab';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-15ac';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -7917,13 +7918,15 @@ function ccSpendHtml(a, p, moves){
   const vals = months.map(sumOf), cur = vals[si], prev = sumOf(ymAdd(sel,-1));
   const inM = ex.filter(x=>x.date.slice(0,7)===sel), n = inM.length;
   // bars
-  const W = 330, H = 120, T = 8, B = 20, mx = Math.max(1, ...vals), bw = W/6;
+  const W = 330, H = 132, T = 20, B = 20, mx = Math.max(1, ...vals), bw = W/6;   // T: room for each bar's figure
   const avg = vals.slice(0,5).filter(v=>v>0), av = avg.length ? avg.reduce((t,v)=>t+v,0)/avg.length : 0;
   const y = v => T + (1 - v/mx)*(H-T-B);
   const bars = months.map((m,i)=>{ const v = vals[i], top = y(v), h = Math.max(2, H-B-top), bx = i*bw + bw*.2, w = bw*.6;
     return `<g class="ccb ${i===si?'on':''}" data-ccm="${m}"><rect x="${i*bw}" y="0" width="${bw}" height="${H}" fill="transparent"/>
-      <path d="${roundTop(bx, H-B-h, w, h, Math.min(5,w/2))}"/><text x="${bx+w/2}" y="${H-5}" text-anchor="middle">${esc(ymShort(m).slice(0,3))}</text></g>`; }).join('');
-  const avgLine = av ? `<line class="avg" x1="0" x2="${W}" y1="${y(av)}" y2="${y(av)}"/><text class="avgt" x="${W}" y="${y(av)-4}" text-anchor="end">avg ${esc(fCompact(av))}</text>` : '';
+      <path d="${roundTop(bx, H-B-h, w, h, Math.min(5,w/2))}"/><text x="${bx+w/2}" y="${H-5}" text-anchor="middle">${esc(ymShort(m).slice(0,3))}</text>
+      ${v > 0 ? `<text class="ccv" x="${bx+w/2}" y="${H-B-h-5}" text-anchor="middle">${esc(fCompact(v))}</text>` : ''}</g>`; }).join('');
+  // the average of the five months before, drawn over the bars, its figure at the left with a halo so a bar can't hide it
+  const avgLine = av ? `<line class="avg" x1="0" x2="${W}" y1="${y(av)}" y2="${y(av)}"/><text class="avgt" x="2" y="${y(av)-4}">Avg ${esc(fCompact(av))}</text>` : '';
   // vs the month before
   const d = cur - prev, vs = !prev ? '' : Math.abs(d) < 1 ? `Same as ${esc(ymShort(ymAdd(sel,-1)).slice(0,3))}`
     : `<span class="${d>0?'down':'up'}">${fChg(d)}</span> vs ${esc(ymShort(ymAdd(sel,-1)).slice(0,3))}`;
@@ -7935,7 +7938,7 @@ function ccSpendHtml(a, p, moves){
     <div class="cctop"><div><div class="k">Spent in ${esc(ymLabel(sel).split(' ')[0])}${sel===ym ? ' so far' : ''}</div>
         <div class="ccbig num money">${bigAmt(fINR2(cur))}</div>
         <div class="ccsub">${n ? `${n} purchase${n===1?'':'s'}` : 'No purchases'}${vs ? ' · ' + vs : ''}</div></div></div>
-    <svg class="ccchart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${avgLine}${bars}</svg>
+    <svg class="ccchart" viewBox="0 0 ${W} ${H}">${bars}${avgLine}</svg>
     ${cats.length ? `<div class="cccats mcbars">${showC.map(c=>{ const pct = Math.round(c.t/(cur||1)*100);   // the Stats page's row: tap for the category's page for this month
         return `<div class="row tap prow" data-xcat="${esc(c.c)}" data-ymc="${sel}">${xTile(c.c)}
         <div class="l"><div class="n">${esc(c.c)}</div><div class="tbar" style="--c:${catCol(c.c)}"><i style="width:${Math.max(2, c.t/cmx*100).toFixed(1)}%"></i></div></div><div class="r"><div class="v num money">${fINR2(c.t)}</div><div class="s">${pct<1?'<1':pct}%</div></div></div>`; }).join('')}

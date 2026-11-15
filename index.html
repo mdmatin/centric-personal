@@ -1556,8 +1556,6 @@ body.paged{overflow:hidden}
 .pg-step button:disabled{color:var(--ink-3);opacity:.45}
 .pg-id .cstep{align-self:flex-start;flex:none}
 .pg-head .cstep{flex:none}
-.pg-id.xid{gap:14px}.pg-id.xid .tile{flex-basis:52px;width:52px;height:52px}.pg-id.xid .pg-big{font-size:28px;letter-spacing:-.8px;margin:0 0 3px}.pg-id.xid .xbud{margin:0}.xtbar{margin-top:16px}
-.sechead .cnt.xsubt{font-size:17px;font-weight:600;color:var(--ink);letter-spacing:-.3px}   /* category page: the month's total beside its breakdown */
 .pg-card{margin-top:6px}
 .pg-id{display:flex;align-items:center;gap:12px}
 .pg-id .tile{flex-basis:46px;width:46px;height:46px}
@@ -2105,6 +2103,37 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 .hpills{margin:0 16px 12px;overflow:visible}.hpills button{min-width:0}.hpills b{overflow:hidden;text-overflow:ellipsis}.hpills button{justify-content:space-between;padding-right:10px}.hpills .pg{display:flex;align-items:center;gap:5px}.hpills .pcv{width:11px;height:11px;color:var(--ink-3);flex:none}.hpills .zico.trz{background:rgba(255,149,0,.14);color:#c26a00}
 #assets .dpill{margin-top:3px}
 .hentry .ic.bk{background:var(--up-bg);color:var(--up)}
+
+/* category page */
+.cx-hero{padding:16px 18px 12px}
+.cx-top{display:flex;align-items:center;gap:11px}
+.cx-top .tile{flex-basis:40px;width:40px;height:40px}
+.cx-top .grow{flex:1;min-width:0}
+.cx-name{font-family:var(--font-disp);font-size:18px;font-weight:700;letter-spacing:-.4px;line-height:1.2}
+.cx-bud{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink-2);padding:0}
+.cx-bud svg{width:12px;height:12px;color:var(--blue)}
+.cx-pc{font-size:14px;font-weight:700;color:var(--ink-2);background:var(--sunken);border-radius:999px;padding:4px 9px;align-self:center}
+.cx-pc.down{color:var(--over);background:color-mix(in srgb, var(--over) 12%, transparent)}
+.cx-amt{font-family:var(--font-disp);font-size:28px;font-weight:600;letter-spacing:-.9px;line-height:1.1;margin:12px 0 1px}
+.cx-line{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--ink-2)}
+.cx-line .down{color:var(--over)}
+.cx-bar{margin:9px 0 0;height:8px}
+.cx-th{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-2);margin:16px 0 0;padding-top:12px;border-top:1px solid var(--hairline)}
+.cx-th span:first-child{font-weight:600;color:var(--ink)}
+.cx-trend .cxscroll{margin:2px -18px 0;padding:0 8px}
+.cx-trend .lchart{margin:0 auto}
+.cx-trend .lchart .grid{stroke:var(--hairline)}
+.cx-leg{display:flex;gap:14px;font-size:11px;color:var(--ink-3);padding:2px 0 0}
+.cx-leg i{display:inline-block;vertical-align:middle;margin-right:4px}
+.cx-leg i.bl{width:11px;height:0;border-top:2px solid var(--ink)}
+.cx-leg i.ov{width:8px;height:8px;border-radius:2px;background:color-mix(in srgb, var(--over) 20%, var(--canvas));box-shadow:inset 0 0 0 1.2px var(--over)}
+.cx-subs{padding:2px 18px}
+.cx-sr{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--hairline);font-size:14.5px}.cx-sr:first-child{border-top:0}
+.cx-sn{flex:0 0 32%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cx-sb{flex:1;min-width:0}
+.cx-sb i{display:block;height:5px;border-radius:3px;background:var(--c);opacity:.75}
+.cx-sr small{font-size:11.5px;color:var(--ink-3);width:30px;text-align:right;flex:none}
+.cx-sr b{font-weight:500;flex:none;min-width:84px;text-align:right}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&amp;text=That%27s%20everything%20for%20today.&amp;display=swap">
 </head>
@@ -2312,7 +2341,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-15w';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-15x';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -6797,24 +6826,17 @@ function spListHtml(){
 }
 
 /* ---------- category page ---------- */
-// the Budget page's bar: tinted fill with a coloured edge, a tick at today, then % used and left / over
-function catBar(cat, spent, bud, today){
-  const u = spent/bud, over = spent > bud, col = over ? 'var(--over)' : catCol(cat);
-  return `<div class="tbar xtbar" style="--c:${col}"><i style="width:${Math.min(100,u*100).toFixed(1)}%"></i>${today!=null?`<em style="left:${(today*100).toFixed(1)}%"></em>`:''}</div>
-    <div class="vbx-m"><span class="num ${over?'down':''}">${Math.round(u*100)}% used</span><span class="num money ${over?'down':''}">${fINR2(Math.abs(bud-spent))} ${over?'over':'left'}</span></div>`;
-}
 function expcatBody(p){
   if (p.yr) return expcatYearBody(p);
   const cat = p.cat, ym = p.ym, o = xMonth(ym), spent = o[cat]||0, bud = xBudget(cat, ym);
   const list = xEntries(ym).filter(e=>e.category===cat);
-  // every month from the first with data up to now, scrolled sideways; a tap
-  // picks a month without moving the chart
   const d0 = xd()||{}, firstYm = [ym].concat(Object.keys(d0.monthly||{}), (d0.entries||[]).map(e=>e.date.slice(0,7))).filter(Boolean).sort()[0];
   const months = []; for (let m=firstYm; m<=ymNow(); m=ymAdd(m,1)) months.push(m);
   const vals = months.map(m=>xMonth(m)[cat]||0);
-  const chart = monthLineChart(months, vals, ym, m=>xBudget(cat,m), bud);
+  // average of the finished months that had any spend, for the Trend heading
+  const done = months.map((m,i)=>[m,vals[i]]).filter(([m,v])=>m<ymNow() && v>0), avg = done.length ? done.reduce((a,[,v])=>a+v,0)/done.length : 0;
   const subs = {}; list.forEach(e=>{ const k=e.sub||'Other'; subs[k]=(subs[k]||0)+e.amount; });
-  const subRows = Object.keys(subs).sort((a,b)=>subs[b]-subs[a]).map(s=>`<div class="hrow"><span>${esc(s)}</span><b class="num money">${fINR2(subs[s])}</b></div>`).join('');
+  const col = bud && spent > bud ? 'var(--over)' : catCol(cat), subRows = shareRows(subs, spent, catCol(cat));
   const hasOverride = (((xd()||{}).budgets||{}).by||{})[ym] && xd().budgets.by[ym][cat]!=null;
   const ed = p.bEdit ? `<div class="ed xbed">
       <div class="inwrap"><span>₹</span><input type="text" inputmode="decimal" value="${bud}" aria-label="${esc(cat)} budget"></div>
@@ -6824,17 +6846,46 @@ function expcatBody(p){
       <button data-pym="-1" aria-label="Previous month">${chev('M15 5l-7 7 7 7')}</button>
       <b data-mpick role="button">${esc(ymLabel(ym))}<svg class="mcaret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></b>
       <button data-pym="1" aria-label="Next month" ${ym>=ymNow()?'disabled':''}>${chev('M9 5l7 7-7 7')}</button></div>`;
-  return sw + `<div class="card pg-card pg-hero">
-      <div class="pg-id xid">${xTile(cat)}<div class="grow"><div class="t">${esc(cat)}</div>
-      <button class="xbud num money" data-bedit>${bud ? `Budget ${fINR2(bud)}${hasOverride?' (this month)':''}` : 'Set a budget'}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button></div></div>
+  const today = ym===ymNow() ? new Date().getDate()/new Date(+ym.slice(0,4), +ym.slice(5,7), 0).getDate() : null;
+  const left = bud - spent, pen = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>`;
+  return sw + `<div class="card pg-card cx-hero">
+      <div class="cx-top">${xTile(cat)}<div class="grow"><div class="cx-name">${esc(cat)}</div>
+        <button class="cx-bud num money" data-bedit>${bud ? `Budget ${fINR2(bud)}${hasOverride?' · this month':''}` : 'Set a budget'}${pen}</button></div>
+        ${bud ? `<div class="cx-pc num ${spent>bud?'down':''}">${Math.round(spent/bud*100)}%</div>` : ''}</div>
       ${ed}
-      ${bud ? catBar(cat, spent, bud, ym===ymNow() ? new Date().getDate()/new Date(+ym.slice(0,4), +ym.slice(5,7), 0).getDate() : null) : ''}
-      ${chart}
+      <div class="cx-amt num money">${bigAmt(fINR2(spent))}</div>
+      <div class="cx-line"><span>${list.length} expense${list.length===1?'':'s'}</span>${bud ? `<span class="num money ${left<0?'down':''}">${fINR2(Math.abs(left))} ${left<0?'over':'left'}</span>` : ''}</div>
+      ${bud ? `<div class="tbar cx-bar" style="--c:${col}"><i style="width:${Math.min(100, spent/bud*100).toFixed(1)}%"></i>${today!=null?`<em style="left:${(today*100).toFixed(1)}%"></em>`:''}</div>` : ''}
+      <div class="cx-th"><span>Trend</span>${avg ? `<span class="num money">Avg ${fCmp(avg)} a month</span>` : ''}</div>
+      <div class="cx-trend">${catMonthBars(months, vals, ym, m=>xBudget(cat,m), catCol(cat))}</div>
     </div>
-    ${subRows ? `<div class="sechead"><h2>By subcategory</h2><span class="cnt num money xsubt">${fINR2(spent)}</span></div><div class="card hstats xsubs">${subRows}</div>` : ''}
-    <div class="sechead"><h2>Expenses</h2>${subRows ? '' : `<span class="cnt num money xsubt">${fINR2(spent)}</span>`}</div>
+    ${subRows ? `<div class="sechead"><h2>Subcategories</h2></div>${subRows}` : ''}
+    <div class="sechead"><h2>Expenses</h2>${list.length ? `<span class="cnt">${list.length}</span>` : ''}</div>
     ${list.length ? xDayGroups(list.map(e=>constrMoney(e) ? { ...e, _cn:true } : e), false) : '<div class="card tight"><div class="empty">Nothing in this category this month</div></div>'}`;   // paid from a construction account: listed, not in the total
+}
+// one line per part of the total: name, a share bar, its %, the amount
+function shareRows(o, total, col){
+  const K = Object.keys(o).sort((a,b)=>o[b]-o[a]), mx = Math.max(1, ...K.map(k=>o[k]));
+  return K.length > 1 ? `<div class="card cx-subs">${K.map(k=>`<div class="cx-sr"><span class="cx-sn">${esc(k)}</span><span class="cx-sb"><i style="width:${Math.max(3, o[k]/mx*100).toFixed(1)}%;--c:${col}"></i></span><small class="num">${total>0 ? Math.round(o[k]/total*100) : 0}%</small><b class="num money">${fINR2(o[k])}</b></div>`).join('')}</div>` : '';
+}
+// a category's months as bars, scrolled sideways (newest at the right): the picked month solid, the others
+// faint, red when over that month's budget, which shows as a short line across each bar; tap a month to open it
+function catMonthBars(months, vals, sel, budFn, col0){
+  const K = v => { v = Math.round(v||0); return v ? (v/1000).toFixed(Math.abs(v)>=1e4?0:1).replace(/\.0$/,'')+'k' : '0'; };
+  const W = 50, H = 128, top = 18, bot = 24, ph = H - top - bot, w = months.length * W, bw = 24;
+  const buds = months.map(m=>budFn ? budFn(m)||0 : 0), mx = Math.max(1, ...vals, ...buds) * 1.04;
+  const y = v => top + ph - v/mx*ph, x0 = i => i*W + (W-bw)/2;
+  let si = -1;
+  const g = [0,1,2].map(k=>`<line class="grid" x1="0" x2="${w}" y1="${(top + ph*k/2).toFixed(1)}" y2="${(top + ph*k/2).toFixed(1)}"/>`).join('');
+  const bars = months.map((m,i)=>{ const v = vals[i], b = buds[i], on = sel==null || m===sel, over = b && v > b, c = over ? 'var(--over)' : col0; if (m===sel) si = i;
+    const h = Math.max(v ? 3 : 0, top + ph - y(v));
+    return `<rect x="${x0(i)}" y="${(top+ph-h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="6" fill="color-mix(in srgb, ${c} ${on?32:14}%, var(--canvas))" stroke="${c}" stroke-width="${on?1.6:1}" stroke-opacity="${on?1:.45}"/>
+      ${b ? `<line x1="${x0(i)-5}" x2="${x0(i)+bw+5}" y1="${y(b).toFixed(1)}" y2="${y(b).toFixed(1)}" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" opacity="${on?.9:.35}"/>` : ''}
+      <text class="lv ${on?'on':''} ${over?'over':''}" x="${x0(i)+bw/2}" y="${(Math.min(y(v), b ? y(b) : y(v)) - 7).toFixed(1)}" text-anchor="middle">${K(v)}</text>
+      <text class="lm ${m===sel?'on':''}" x="${x0(i)+bw/2}" y="${H-6}" text-anchor="middle">${ymShort(m).slice(0,3)}${m.slice(5)==='01'||i===0?` ’${m.slice(2,4)}`:''}</text>
+      <rect class="hit" data-mbym="${m}" x="${i*W}" y="0" width="${W}" height="${H}"/>`; }).join('');
+  return `<div class="mbscroll lscroll cxscroll" data-sel="${si}" data-w="${W}"><svg class="lchart" width="${w}" height="${H}" viewBox="0 0 ${w} ${H}">${g}${bars}</svg></div>
+    ${buds.some(b=>b) ? `<div class="cx-leg"><span><i class="bl"></i>Budget</span><span><i class="ov"></i>Over budget</span></div>` : ''}`;
 }
 
 /* A category's year (opened from Stats or Budget in Year view): the year's spend against the budget of
@@ -6846,8 +6897,8 @@ function expcatYearBody(p){
   const d0 = xd() || {}, list = (d0.entries||[]).filter(e=>e.category===cat && e.date.slice(0,4)===y);
   const partial = (d0.entriesFrom||'') > y+'-01';               // the phone holds this year's entries only from entriesFrom
   const subs = {}; list.forEach(e=>{ const k = e.sub||'Other'; subs[k] = (subs[k]||0) + e.amount; });
-  const subRows = Object.keys(subs).sort((a,b)=>subs[b]-subs[a]).map(k=>`<div class="hrow"><span>${esc(k)}</span><b class="num money">${fINR2(subs[k])}</b></div>`).join('');
-  const chart = monthLineChart(yms, vals, '', m=>xBudget(cat,m), xBudget(cat, yms[yms.length-1]||nowYm));
+  const subRows = shareRows(subs, spent, catCol(cat));
+  const chart = catMonthBars(yms, vals, null, m=>xBudget(cat,m), catCol(cat));
   const rows = yms.slice().reverse().map(m=>{ const v = xMonth(m)[cat]||0, b = xBudget(cat,m), u = b ? Math.round(v/b*100) : null;
     return `<button class="lr num money" data-mbym="${m}"><span>${MON3[+m.slice(5,7)-1]}</span><span class="${u!=null && u>100 ? 'down' : 'z'}">${u!=null ? u + '%' : '—'}</span><span>${fINR2(v)}</span></button>`; }).join('');
   const cy = nowYm.slice(0,4);
@@ -6855,15 +6906,19 @@ function expcatYearBody(p){
       <button data-pyy="-1" aria-label="Previous year">${chev('M15 5l-7 7 7 7')}</button><b>${esc(y)}</b>
       <button data-pyy="1" aria-label="Next year" ${y>=cy?'disabled':''}>${chev('M9 5l7 7-7 7')}</button></div>`;
   const over = bud && spent > bud;
-  return sw + `<div class="card pg-card pg-hero">
-      <div class="pg-id xid">${xTile(cat)}<div class="grow"><div class="t">${esc(cat)}</div>
-      <div class="xbud static num money">${bud ? `Budget ${fINR2(bud)}${sf ? ' so far' : ''}` : 'No budget'}</div></div></div>
-      ${bud ? catBar(cat, spent, bud, null) : ''}
-      ${bud && sf ? `<div class="vbx-y num money">${tipS(full, fCompact(full))} budget for the year</div>` : ''}
-      ${chart}
+  const left = bud - spent, avg = vals.filter(v=>v>0).length ? spent / vals.filter(v=>v>0).length : 0;
+  return sw + `<div class="card pg-card cx-hero">
+      <div class="cx-top">${xTile(cat)}<div class="grow"><div class="cx-name">${esc(cat)}</div>
+        <div class="cx-bud num money">${bud ? `Budget ${fINR2(bud)}${sf ? ' so far' : ''}` : 'No budget'}</div></div>
+        ${bud ? `<div class="cx-pc num ${over?'down':''}">${Math.round(spent/bud*100)}%</div>` : ''}</div>
+      <div class="cx-amt num money">${bigAmt(fINR2(spent))}</div>
+      <div class="cx-line"><span>${partial ? (sf ? 'So far' : 'This year') : `${list.length} expense${list.length===1?'':'s'}`}${bud && sf ? ` · ${tipS(full, fCompact(full))} budget for the year` : ''}</span>${bud ? `<span class="num money ${left<0?'down':''}">${fINR2(Math.abs(left))} ${left<0?'over':'left'}</span>` : ''}</div>
+      ${bud ? `<div class="tbar cx-bar" style="--c:${over ? 'var(--over)' : catCol(cat)}"><i style="width:${Math.min(100, spent/bud*100).toFixed(1)}%"></i></div>` : ''}
+      <div class="cx-th"><span>Months</span>${avg ? `<span class="num money">Avg ${fCmp(avg)} a month</span>` : ''}</div>
+      <div class="cx-trend">${chart}</div>
     </div>
-    ${subRows ? `<div class="sechead"><h2>By subcategory</h2><span class="cnt num money xsubt">${fINR2(spent)}</span></div><div class="card hstats xsubs">${subRows}</div>` : ''}
-    <div class="sechead"><h2>By month</h2>${subRows ? '' : `<span class="cnt num money xsubt">${fINR2(spent)}</span>`}</div>
+    ${subRows ? `<div class="sechead"><h2>Subcategories</h2></div>${subRows}` : ''}
+    <div class="sechead"><h2>By month</h2></div>
     <div class="card tight ctab"><div class="lh"><span>Month</span><span>Of budget</span><span>Expense</span></div>${rows}</div>`;
 }
 
@@ -6901,9 +6956,9 @@ function inccatBody(p){
   const firstYm = [ym, ymAdd(ymNow(),-11)].concat(all.map(i=>i.date.slice(0,7))).sort()[0];   // at least a year
   const months = []; for (let m=firstYm; m<=ymNow(); m=ymAdd(m,1)) months.push(m);
   const vals = months.map(m=>all.filter(i=>i.date.slice(0,7)===m).reduce((a,i)=>a+i.amount,0));
-  const chart = monthLineChart(months, vals, ym, null, 0);
+  const chart = catMonthBars(months, vals, ym, null, 'var(--up)');
   const bySrc = {}; list.forEach(i=>{ const k=i.source||i.account||'Other'; bySrc[k]=(bySrc[k]||0)+i.amount; });
-  const srcRows = Object.keys(bySrc).length > 1 ? Object.keys(bySrc).sort((a,b)=>bySrc[b]-bySrc[a]).map(k=>`<div class="hrow"><span>${esc(k)}</span><b class="num money">${fINR2(bySrc[k])}</b></div>`).join('') : '';
+  const srcRows = shareRows(bySrc, total, 'var(--up)');
   const yearTot = vals.slice(-12).reduce((a,v)=>a+v,0);
   const sw = `<div class="mswitch pg-mswitch">
       <button data-pym="-1" aria-label="Previous month">${chev('M15 5l-7 7 7 7')}</button>
@@ -6912,13 +6967,16 @@ function inccatBody(p){
   const rows = list.slice().sort((a,b)=>a.date<b.date?1:-1).map(e=>`<button class="row" data-mvi="${e.row}">${xtTile(e.type)}
       <div class="l"><div class="n">${esc(e.source || e.type || 'Income')}</div><div class="m">${[e.account, e.remark, fDate(e.date)].filter(Boolean).map(esc).join(' · ')}</div></div>
       <div class="r"><div class="v num money up">${fINR2(e.amount)}</div>${e.tax?`<div class="s num money">tax ${fINR2(e.tax)}</div>`:''}</div></button>`).join('');
-  return sw + `<div class="card pg-card pg-hero">
-      <div class="pg-id xid">${xtTile(t)}<div class="grow"><div class="t">${esc(t)}</div>
-      <div class="xbud num money" style="pointer-events:none">Last 12 months ${fINR2(yearTot)}</div></div></div>
-      ${chart}
+  return sw + `<div class="card pg-card cx-hero">
+      <div class="cx-top">${xtTile(t)}<div class="grow"><div class="cx-name">${esc(t)}</div>
+        <div class="cx-bud num money">Last 12 months ${fINR2(yearTot)}</div></div></div>
+      <div class="cx-amt num money up">${bigAmt(fINR2(total))}</div>
+      <div class="cx-line"><span>${list.length} entr${list.length===1?'y':'ies'}</span></div>
+      <div class="cx-th"><span>Trend</span>${yearTot ? `<span class="num money">Avg ${fCmp(yearTot/12)} a month</span>` : ''}</div>
+      <div class="cx-trend">${chart}</div>
     </div>
-    ${srcRows ? `<div class="sechead"><h2>By company</h2><span class="cnt num money xsubt">${fINR2(total)}</span></div><div class="card hstats xsubs">${srcRows}</div>` : ''}
-    <div class="sechead"><h2>Entries</h2>${srcRows ? '' : `<span class="cnt num money xsubt">${fINR2(total)}</span>`}</div>
+    ${srcRows ? `<div class="sechead"><h2>By company</h2></div>${srcRows}` : ''}
+    <div class="sechead"><h2>Entries</h2>${list.length ? `<span class="cnt">${list.length}</span>` : ''}</div>
     ${rows ? `<div class="card tight">${rows}</div>` : '<div class="card tight"><div class="empty">Nothing of this type this month</div></div>'}`;
 }
 

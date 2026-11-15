@@ -2127,13 +2127,19 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 .cx-leg i{display:inline-block;vertical-align:middle;margin-right:4px}
 .cx-leg i.bl{width:11px;height:0;border-top:2px solid var(--ink)}
 .cx-leg i.ov{width:8px;height:8px;border-radius:2px;background:color-mix(in srgb, var(--over) 20%, var(--canvas));box-shadow:inset 0 0 0 1.2px var(--over)}
-.cx-subs{padding:2px 18px}
+.cx-subs{padding:2px 18px;overflow:hidden}
 .cx-sr{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--hairline);font-size:14.5px}.cx-sr:first-child{border-top:0}
 .cx-sn{flex:0 0 32%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cx-sb{flex:1;min-width:0}
 .cx-sb i{display:block;height:5px;border-radius:3px;background:var(--c);opacity:.75}
 .cx-sr small{font-size:11.5px;color:var(--ink-3);width:30px;text-align:right;flex:none}
 .cx-sr b{font-weight:500;flex:none;min-width:84px;text-align:right}
+.cx-sr{cursor:pointer;margin:0 -18px;padding-left:18px;padding-right:18px;transition:opacity .15s}
+.cx-subs.picked .cx-sr:not(.on){opacity:.42}
+.cx-sr.on{background:color-mix(in srgb, var(--blue) 7%, transparent)}.cx-sr.on .cx-sn{font-weight:600}
+.cx-chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--blue);background:color-mix(in srgb, var(--blue) 10%, transparent);border-radius:999px;padding:4px 10px;align-self:center}
+.cx-chip span{font-size:11px;opacity:.8}
+.sechead .cx-chip{height:26px;min-height:0;line-height:1;flex:none}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&amp;text=That%27s%20everything%20for%20today.&amp;display=swap">
 </head>
@@ -2341,7 +2347,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-15x';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-15y';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -6836,7 +6842,9 @@ function expcatBody(p){
   // average of the finished months that had any spend, for the Trend heading
   const done = months.map((m,i)=>[m,vals[i]]).filter(([m,v])=>m<ymNow() && v>0), avg = done.length ? done.reduce((a,[,v])=>a+v,0)/done.length : 0;
   const subs = {}; list.forEach(e=>{ const k=e.sub||'Other'; subs[k]=(subs[k]||0)+e.amount; });
-  const col = bud && spent > bud ? 'var(--over)' : catCol(cat), subRows = shareRows(subs, spent, catCol(cat));
+  if (p.sub!=null && !subs[p.sub]) p.sub = null;
+  const col = bud && spent > bud ? 'var(--over)' : catCol(cat), subRows = shareRows(subs, spent, catCol(cat), p.sub);
+  const shown = p.sub!=null ? list.filter(e=>(e.sub||'Other')===p.sub) : list;
   const hasOverride = (((xd()||{}).budgets||{}).by||{})[ym] && xd().budgets.by[ym][cat]!=null;
   const ed = p.bEdit ? `<div class="ed xbed">
       <div class="inwrap"><span>₹</span><input type="text" inputmode="decimal" value="${bud}" aria-label="${esc(cat)} budget"></div>
@@ -6860,13 +6868,13 @@ function expcatBody(p){
       <div class="cx-trend">${catMonthBars(months, vals, ym, m=>xBudget(cat,m), catCol(cat))}</div>
     </div>
     ${subRows ? `<div class="sechead"><h2>Subcategories</h2></div>${subRows}` : ''}
-    <div class="sechead"><h2>Expenses</h2>${list.length ? `<span class="cnt">${list.length}</span>` : ''}</div>
-    ${list.length ? xDayGroups(list.map(e=>constrMoney(e) ? { ...e, _cn:true } : e), false) : '<div class="card tight"><div class="empty">Nothing in this category this month</div></div>'}`;   // paid from a construction account: listed, not in the total
+    <div class="sechead"><h2>Expenses</h2>${p.sub!=null ? `<button class="cx-chip" data-xsub="${esc(p.sub)}">${esc(p.sub)} · ${shown.length}<span aria-hidden="true">✕</span></button>` : list.length ? `<span class="cnt">${list.length}</span>` : ''}</div>
+    ${shown.length ? xDayGroups(shown.map(e=>constrMoney(e) ? { ...e, _cn:true } : e), false) : '<div class="card tight"><div class="empty">Nothing in this category this month</div></div>'}`;   // paid from a construction account: listed, not in the total
 }
 // one line per part of the total: name, a share bar, its %, the amount
-function shareRows(o, total, col){
+function shareRows(o, total, col, sel){   // sel: the part the list below is narrowed to (tap a row to narrow, again to clear)
   const K = Object.keys(o).sort((a,b)=>o[b]-o[a]), mx = Math.max(1, ...K.map(k=>o[k]));
-  return K.length > 1 ? `<div class="card cx-subs">${K.map(k=>`<div class="cx-sr"><span class="cx-sn">${esc(k)}</span><span class="cx-sb"><i style="width:${Math.max(3, o[k]/mx*100).toFixed(1)}%;--c:${col}"></i></span><small class="num">${total>0 ? Math.round(o[k]/total*100) : 0}%</small><b class="num money">${fINR2(o[k])}</b></div>`).join('')}</div>` : '';
+  return K.length > 1 ? `<div class="card cx-subs ${sel!=null?'picked':''}">${K.map(k=>`<div class="cx-sr ${sel===k?'on':''}" role="button" data-xsub="${esc(k)}"><span class="cx-sn">${esc(k)}</span><span class="cx-sb"><i style="width:${Math.max(3, o[k]/mx*100).toFixed(1)}%;--c:${col}"></i></span><small class="num">${total>0 ? Math.round(o[k]/total*100) : 0}%</small><b class="num money">${fINR2(o[k])}</b></div>`).join('')}</div>` : '';
 }
 // a category's months as bars, scrolled sideways (newest at the right): the picked month solid, the others
 // faint, red when over that month's budget, which shows as a short line across each bar; tap a month to open it
@@ -6958,13 +6966,14 @@ function inccatBody(p){
   const vals = months.map(m=>all.filter(i=>i.date.slice(0,7)===m).reduce((a,i)=>a+i.amount,0));
   const chart = catMonthBars(months, vals, ym, null, 'var(--up)');
   const bySrc = {}; list.forEach(i=>{ const k=i.source||i.account||'Other'; bySrc[k]=(bySrc[k]||0)+i.amount; });
-  const srcRows = shareRows(bySrc, total, 'var(--up)');
+  if (p.sub!=null && !bySrc[p.sub]) p.sub = null;
+  const srcRows = shareRows(bySrc, total, 'var(--up)', p.sub);
   const yearTot = vals.slice(-12).reduce((a,v)=>a+v,0);
   const sw = `<div class="mswitch pg-mswitch">
       <button data-pym="-1" aria-label="Previous month">${chev('M15 5l-7 7 7 7')}</button>
       <b data-mpick role="button">${esc(ymLabel(ym))}<svg class="mcaret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></b>
       <button data-pym="1" aria-label="Next month" ${ym>=ymNow()?'disabled':''}>${chev('M9 5l7 7-7 7')}</button></div>`;
-  const rows = list.slice().sort((a,b)=>a.date<b.date?1:-1).map(e=>`<button class="row" data-mvi="${e.row}">${xtTile(e.type)}
+  const rows = list.filter(i=>p.sub==null || (i.source||i.account||'Other')===p.sub).sort((a,b)=>a.date<b.date?1:-1).map(e=>`<button class="row" data-mvi="${e.row}">${xtTile(e.type)}
       <div class="l"><div class="n">${esc(e.source || e.type || 'Income')}</div><div class="m">${[e.account, e.remark, fDate(e.date)].filter(Boolean).map(esc).join(' · ')}</div></div>
       <div class="r"><div class="v num money up">${fINR2(e.amount)}</div>${e.tax?`<div class="s num money">tax ${fINR2(e.tax)}</div>`:''}</div></button>`).join('');
   return sw + `<div class="card pg-card cx-hero">
@@ -6976,7 +6985,7 @@ function inccatBody(p){
       <div class="cx-trend">${chart}</div>
     </div>
     ${srcRows ? `<div class="sechead"><h2>By company</h2></div>${srcRows}` : ''}
-    <div class="sechead"><h2>Entries</h2>${list.length ? `<span class="cnt">${list.length}</span>` : ''}</div>
+    <div class="sechead"><h2>Entries</h2>${p.sub!=null ? `<button class="cx-chip" data-xsub="${esc(p.sub)}">${esc(p.sub)}<span aria-hidden="true">✕</span></button>` : list.length ? `<span class="cnt">${list.length}</span>` : ''}</div>
     ${rows ? `<div class="card tight">${rows}</div>` : '<div class="card tight"><div class="empty">Nothing of this type this month</div></div>'}`;
 }
 
@@ -7033,7 +7042,8 @@ function wireXPage(p){
   $$('#page [data-mvi]').forEach(r=>r.onclick=()=>openXSheet(((xd()||{}).incomes||[]).find(e=>String(e.row)===r.dataset.mvi), 'income'));
   const kp = $('#page [data-kitepay]'); if (kp) kp.onclick = ()=>openLiquidation(p.cat);
   if (p.kind==='expcat' || p.kind==='inccat'){
-    $$('#page [data-cstep]').forEach(s=>s.onclick=()=>{ const L = catList(p), n = L[L.indexOf(p.cat) + Number(s.dataset.cstep)]; if (!n) return; p.cat = n; p.bEdit = false; rerender(); });
+    $$('#page [data-cstep]').forEach(s=>s.onclick=()=>{ const L = catList(p), n = L[L.indexOf(p.cat) + Number(s.dataset.cstep)]; if (!n) return; p.cat = n; p.bEdit = false; p.sub = null; rerender(); });
+    $$('#page [data-xsub]').forEach(r=>r.onclick=()=>{ p.sub = p.sub===r.dataset.xsub ? null : r.dataset.xsub; rerender(); });
     const b = $('#page [data-bedit]'); if (b) b.onclick = ()=>{ p.bEdit = !p.bEdit; rerender(); };
     const gs = $('#page .mbscroll');
     if (gs){
@@ -7044,7 +7054,7 @@ function wireXPage(p){
       p.gx = gs.scrollLeft;
       gs.addEventListener('scroll', ()=>{ p.gx = gs.scrollLeft; }, { passive:true });
     }
-    const toMonth = m=>{ if (!m || m>ymNow() || (m===p.ym && !p.yr)) return; p.ym = m; p.yr = null; p.gx = null; p.bEdit = false; rerender(); };   // a month from a year opens that month
+    const toMonth = m=>{ if (!m || m>ymNow() || (m===p.ym && !p.yr)) return; p.ym = m; p.yr = null; p.gx = null; p.bEdit = false; p.sub = null; rerender(); };   // a month from a year opens that month
     $$('#page [data-pyy]').forEach(x=>x.onclick=()=>{ const y = String(+p.yr + Number(x.dataset.pyy)); if (y > ymNow().slice(0,4)) return; p.yr = y; p.gx = null; rerender(); });
     $$('#page [data-pym]').forEach(x=>x.onclick=()=>toMonth(ymAdd(p.ym, Number(x.dataset.pym))));
     $$('#page [data-mbym]').forEach(x=>x.onclick=()=>toMonth(x.dataset.mbym));

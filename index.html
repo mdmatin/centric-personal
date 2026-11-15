@@ -2347,7 +2347,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-15aa';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-15ab';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -6840,7 +6840,7 @@ function expcatBody(p){
   const months = []; for (let m=firstYm; m<=ymNow(); m=ymAdd(m,1)) months.push(m);
   const vals = months.map(m=>xMonth(m)[cat]||0);
   // average of the finished months that had any spend, for the Trend heading
-  const done = months.map((m,i)=>[m,vals[i]]).filter(([m,v])=>m<ymNow() && v>0), avg = done.length ? done.reduce((a,[,v])=>a+v,0)/done.length : 0;
+  const done = months.map((m,i)=>[m,vals[i]]).filter(([m,v])=>m<ymNow() && v>0).map(([,v])=>v).sort((a,b)=>a-b), avg = done.length ? (done.length % 2 ? done[(done.length-1)/2] : (done[done.length/2-1] + done[done.length/2])/2) : 0;   // the middle finished month: one huge bill doesn't drag it up
   const subs = {}; list.forEach(e=>{ const k=e.sub||'Other'; subs[k]=(subs[k]||0)+e.amount; });
   p.subs = (p.subs||[]).filter(k=>subs[k]);
   const col = bud && spent > bud ? 'var(--over)' : catCol(cat), subRows = shareRows(subs, spent, catCol(cat), p.subs);
@@ -6864,7 +6864,7 @@ function expcatBody(p){
       <div class="cx-amt num money">${bigAmt(fINR2(spent))}</div>
       <div class="cx-line"><span>${list.length} expense${list.length===1?'':'s'}</span>${bud ? `<span class="num money ${left<0?'down':''}">${fINR2(Math.abs(left))} ${left<0?'over':'left'}</span>` : ''}</div>
       ${bud ? `<div class="tbar cx-bar" style="--c:${col}"><i style="width:${Math.min(100, spent/bud*100).toFixed(1)}%"></i>${today!=null?`<em style="left:${(today*100).toFixed(1)}%"></em>`:''}</div>` : ''}
-      <div class="cx-th"><span>Trend</span>${avg ? `<span class="num money">Avg ${fCmp(avg)} a month</span>` : ''}</div>
+      <div class="cx-th"><span>Trend</span>${avg ? `<span class="num money">Usually ${fCmp(avg)} a month</span>` : ''}</div>
       <div class="cx-trend">${catMonthBars(months, vals, ym, m=>xBudget(cat,m), catCol(cat))}</div>
     </div>
     ${subRows ? `<div class="sechead"><h2>Subcategories</h2></div>${subRows}` : ''}

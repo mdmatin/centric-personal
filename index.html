@@ -2348,7 +2348,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-15ad';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-23ae';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -5854,6 +5854,7 @@ async function loadExpenses(fresh){
     if (activeView==='trend' && D) renderTrends(D.data.daily, D.data.monthly);   // cash in accounts is live
     const top = pageStack[pageStack.length-1];
     if (top && /^(expcat|inccat|budgets|acct|zakat|interest|constr|books|bklog|recurring|profile|bucket)$/.test(top.kind)){ const el=$('#page'), y=el.scrollTop; renderPage(); el.scrollTop=y; }
+    else if (top && top.kind==='xsearch' && top._res) top._res();
   }catch(e){ if (activeView==='spend' && !X) $('#spBody').innerHTML = `<div class="empty">${esc(e.message||'Could not load expenses')}</div>`; }
   finally{
     xLoading = false;
@@ -6710,6 +6711,7 @@ function wireXSearch(p){
   const wireRes = () => { $$('#xsRes [data-tx]').forEach(r=>r.onclick=()=>openTx(r.dataset.tx));
     $$('#xsRes [data-sug]').forEach(b=>b.onclick=()=>{ const k = b.dataset.sug; p.pick = k==='*' ? { f:'*', v:p.q } : (()=>{ const x = xsSuggest(p.q)[Number(k)]; return { f:x.f, v:x.v }; })(); inp.value = p.pick.v; inp.blur(); res(); pg.scrollTop = 0; }); };
   const res = () => { const r = $('#xsRes'); if (r){ r.innerHTML = xsResultsHtml(p); wireRes(); } };
+  p._res = res;   // a reload or a delete refreshes just the results, so the box keeps its text and the keyboard
   const redraw = () => { const y = pg.scrollTop; renderPage(); pg.scrollTop = y; };
   const box = $('#xsBox'), inp = box.querySelector('input'), x = box.querySelector('.sx');
   inp.setAttribute('autocapitalize', 'off');
@@ -9170,6 +9172,7 @@ function rerenderSpendViews(){
   if (activeView==='spend') renderSpend();
   const top = pageStack[pageStack.length-1];
   if (top && /^(expcat|inccat|budgets|acct|zakat|interest|constr|books|bklog|recurring|profile|bucket)$/.test(top.kind)){ const el=$('#page'), y=el.scrollTop; renderPage(); el.scrollTop=y; }
+    else if (top && top.kind==='xsearch' && top._res) top._res();
 }
 async function saveXSheet(){
   const amount = xAmt();
@@ -9379,7 +9382,7 @@ async function qResume(){
    so either all go or none do).
    ========================================================================== */
 var SEL = null, selEat = false, selPress = null;   // var: show() checks SEL before this line runs
-const SEL_ROW = '#spBody .row[data-tx], #spBody .row[data-xrow], #page .row[data-xrow]';
+const SEL_ROW = '#spBody .row[data-tx], #spBody .row[data-xrow], #page .row[data-xrow], #page .row[data-tx]';   // #page [data-tx]: Search's results
 const selKeyOf = r => r.dataset.tx || ('ex:' + r.dataset.xrow);
 function selEntry(key){
   const i = key.indexOf(':'), k = key.slice(0,i), row = key.slice(i+1), d = xd() || {};

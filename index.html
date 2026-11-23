@@ -2157,12 +2157,12 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 .ivchart .ivb.on text{fill:var(--ink);font-weight:700}.ivchart text.v{font-weight:600}
 .ivsel{padding:6px 18px 6px}
 .ivtop{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:8px 0 12px;border-bottom:1px solid var(--hairline)}
-.ivtop span{display:block;font-size:12px;color:var(--ink-2)}.ivtop b{font-size:16px;font-weight:600}.ivtop div:last-child{text-align:right}
+.ivtop span{display:block;font-size:12px;color:var(--ink-2)}.ivtop b{font-size:16px;font-weight:600}.ivtop div:last-child{text-align:right}.ivtop div:nth-child(2){text-align:center}
 .ivr{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--hairline);font-size:14.5px}.ivtop + .ivr{border-top:0}
 .ivr .n{flex:1;min-width:0}.ivr .n small{display:block;font-size:12px;color:var(--ink-3);margin-top:2px}.ivr .d{font-size:12px;color:var(--ink-3)}.ivr .d i{font-style:normal}.ivr b{font-weight:600;min-width:90px;text-align:right}
-.ivlist .ivy{display:flex;align-items:baseline;gap:10px;width:100%;padding:13px 16px;border:0;border-top:1px solid var(--hairline);background:none;text-align:left;font-size:15px;color:var(--ink)}
+.ivlist .ivy{display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;border:0;border-top:1px solid var(--hairline);background:none;text-align:left;font-size:15px;color:var(--ink)}
 .ivlist .ivy:first-child{border-top:0}.ivlist .ivy.on{background:color-mix(in srgb, var(--blue) 6%, transparent)}
-.ivlist .ivy .n{flex:1}.ivlist .ivy .n i{font-style:normal;font-size:12px;color:var(--ink-3)}.ivlist .ivy .d{font-size:12px;color:var(--ink-3)}.ivlist .ivy b{font-weight:600;min-width:92px;text-align:right}
+.ivlist .ivy .n{flex:1;min-width:0}.ivlist .ivy .n small{display:block;font-size:12px;color:var(--ink-3);margin-top:2px}.ivlist .ivy .n i{font-style:normal;font-size:12px;color:var(--ink-3)}.ivlist .ivy .d{font-size:12px;color:var(--ink-3)}.ivlist .ivy b{font-weight:600;min-width:92px;text-align:right}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&amp;text=That%27s%20everything%20for%20today.&amp;display=swap">
 </head>
@@ -2370,7 +2370,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-23af';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-23ag';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -6865,9 +6865,9 @@ function spListHtml(){
 function invYrBody(p){
   const T = (D && D.data.transactions) || [];
   if (!txnsExhausted) return `<div class="card pg-card"><div class="pg-load">Loading every trade…</div></div>`;
-  const inr = t => Number(t.inr != null ? t.inr : t.amount) || 0;
+  const inr = t => Math.abs(Number(t.inr != null ? t.inr : t.amount) || 0);   // the sheet signs a buy as money out (−): here both sides count as sizes
   const Y = {};
-  T.forEach(t=>{ if (!t.date || !/^(Buy|Sell)$/i.test(t.order||'')) return; const y = fyOf(t.date), o = (Y[y] = Y[y] || { y, b:0, s:0, n:0, cat:{} }), v = inr(t), buy = /^buy$/i.test(t.order);
+  T.forEach(t=>{ if (!t.date || !/^(Buy|Sell)$/i.test(t.order||'') || !inr(t)) return; const y = fyOf(t.date), o = (Y[y] = Y[y] || { y, b:0, s:0, n:0, cat:{} }), v = inr(t), buy = /^buy$/i.test(t.order);
     if (buy) o.b += v; else o.s += v; o.n++; const c = (o.cat[t.category||'Other'] = o.cat[t.category||'Other'] || { b:0, s:0 }); if (buy) c.b += v; else c.s += v; });
   const ys = Object.values(Y).sort((a,b)=>a.y-b.y); if (!ys.length) return `<div class="card pg-card"><div class="empty">No trades yet</div></div>`;
   const cur = fyOf(todayISO()), lbl = y => `FY ${String(y).slice(2)}–${String(y+1).slice(2)}`;
@@ -6882,7 +6882,7 @@ function invYrBody(p){
       <text class="m" x="${x+14}" y="${H-6}" text-anchor="middle">${esc(String(o.y).slice(2)+'–'+String(o.y+1).slice(2))}</text></g>`; }).join('');
   const cats = Object.entries(so.cat).sort((a,b)=>(b[1].b-b[1].s)-(a[1].b-a[1].s));
   const catRows = cats.map(([k,c])=>`<div class="ivr"><span class="n">${esc(k)}<small class="num money">${c.b ? 'Bought ' + fCompact(c.b) : ''}${c.b && c.s ? ' · ' : ''}${c.s ? 'Sold ' + fCompact(c.s) : ''}</small></span><b class="num money ${c.b-c.s<0?'down':''}">${c.b-c.s<0?'−':''}${fINR2(Math.abs(c.b-c.s))}</b></div>`).join('');
-  const list = ys.slice().reverse().map(o=>`<button class="ivy ${o.y===so.y?'on':''}" data-ivy="${o.y}"><span class="n">${esc(lbl(o.y))}${o.y===cur?' <i>so far</i>':''}</span><span class="d num money">${fCompact(o.b)} in · ${fCompact(o.s)} out</span><b class="num money ${o.b-o.s<0?'down':''}">${o.b-o.s<0?'−':''}${fINR2(Math.abs(o.b-o.s))}</b></button>`).join('');
+  const list = ys.slice().reverse().map(o=>`<button class="ivy ${o.y===so.y?'on':''}" data-ivy="${o.y}"><span class="n">${esc(lbl(o.y))}${o.y===cur?' <i>so far</i>':''}<small class="num money">Bought ${fCompact(o.b)} · Sold ${fCompact(o.s)}</small></span><b class="num money ${o.b-o.s<0?'down':''}">${o.b-o.s<0?'−':''}${fINR2(Math.abs(o.b-o.s))}</b></button>`).join('');
   return `<div class="card pg-card pg-hero ivhero">
       <div class="k">Net new money, all years</div><div class="pg-big num money">${bigAmt(fINR2(totNet))}</div>
       <div class="ivsub num money">${tipS(totB, fCompact(totB))} bought · ${tipS(totB - totNet, fCompact(totB - totNet))} sold since ${esc(lbl(ys[0].y))}</div>

@@ -386,6 +386,7 @@ body.dselecting .dl .dr.picked::before{box-shadow:none;background:var(--blue) ur
 .mgsh .menu button i{width:20px;height:20px;flex:none;color:var(--blue)}
 .mgsh .menu button i svg{width:20px;height:20px}
 .chbn{margin-top:8px;font-size:12px;color:var(--ink-3);text-align:center}
+.mgsh .menu .mghd{padding:10px 12px 2px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);border-top:1px solid var(--hairline)}
 .mgsh .menu .mgnote{width:0;min-width:100%;box-sizing:border-box;padding:8px 12px 6px;font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--hairline)}
 .nwmg .mgtop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .nwmg .k{font-size:13px;color:var(--ink-2);font-weight:600}.nwmg .k .so{font-weight:400;color:var(--ink-3)}
@@ -2160,9 +2161,8 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 .ivtop span{display:block;font-size:12px;color:var(--ink-2)}.ivtop b{font-size:16px;font-weight:600}.ivtop div:last-child{text-align:right}.ivtop div:nth-child(2){text-align:center}
 .ivr{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--hairline);font-size:14.5px}.ivtop + .ivr{border-top:0}
 .ivr .n{flex:1;min-width:0}.ivr .n small{display:block;font-size:12px;color:var(--ink-3);margin-top:2px}.ivr .d{font-size:12px;color:var(--ink-3)}.ivr .d i{font-style:normal}.ivr b{font-weight:600;min-width:90px;text-align:right}
-.ivlist .ivy{display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;border:0;border-top:1px solid var(--hairline);background:none;text-align:left;font-size:15px;color:var(--ink)}
-.ivlist .ivy:first-child{border-top:0}.ivlist .ivy.on{background:color-mix(in srgb, var(--blue) 6%, transparent)}
-.ivlist .ivy .n{flex:1;min-width:0}.ivlist .ivy .n small{display:block;font-size:12px;color:var(--ink-3);margin-top:2px}.ivlist .ivy .n i{font-style:normal;font-size:12px;color:var(--ink-3)}.ivlist .ivy .d{font-size:12px;color:var(--ink-3)}.ivlist .ivy b{font-weight:600;min-width:92px;text-align:right}
+/* By year on the Invested page: the Net worth page's day list */
+.ivdl .ivd{cursor:pointer}.ivdl .z .p{color:inherit;opacity:.75;margin-left:2px}.ivdl .ivd.cur{background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--blue) 7%,transparent) 12%,color-mix(in srgb,var(--blue) 7%,transparent) 88%,transparent);margin:0 -16px;padding-left:16px;padding-right:16px}.ivdl .ivd.cur + .r{border-top-color:transparent}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&amp;text=That%27s%20everything%20for%20today.&amp;display=swap">
 </head>
@@ -2370,7 +2370,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-23ai';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-24ak';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3677,7 +3677,7 @@ function renderTrends(daily, monthly){
   // the first period counts from the first logged day (so July shows, from 3 Jul)
   let days = ends.map((e,i)=>({ e, q: i ? ends[i-1].p : mkt[0] })).filter(o=>o.e.p!==o.q).map(({e,q})=>{ const p = e.p, chg = p.netWorth - q.netWorth;
     const inv = p.investment!=null && q.investment!=null ? p.investment - q.investment : null;
-    return { date:e.k, last:p.date, live:!!p.live, nw:p.netWorth, chg, pct: q.netWorth ? chg/q.netWorth : null, inv, invPct: inv!=null && q.investment ? inv/q.investment : null, cash: inv==null ? null : chg - inv }; });
+    return { date:e.k, last:p.date, live:!!p.live, nw:p.netWorth, chg, pct: q.netWorth ? chg/q.netWorth : null, inv, invPct: inv!=null && q.investment ? inv/q.investment : null, ib: q.investment, cash: inv==null ? null : chg - inv }; });
   // money put in that period: the pay-in logged on each day (F), so Investments splits into market + money added
   const payOn = new Map(all.map(p=>[p.date, Number(p.payInOut)||0]));
   days.forEach((y,i)=>{ const from = i ? days[i-1].last : mkt[0].date; let a = 0; payOn.forEach((v,d)=>{ if (d > from && d <= y.last) a += v; }); if (y.live) a = 0;   // today so far is the market move only; today's buys land in tomorrow's log
@@ -3685,8 +3685,8 @@ function renderTrends(daily, monthly){
   // Buckets (Investments only): the nightly Bucket History log (from 22 Oct 2026) summed over the
   // ticked buckets — value change, money added = invested change − realised, market = the rest
   const bd = (BD && Array.isArray(BD.rows)) ? BD.rows : [], bkAll = [...new Set(bd.map(r=>r.bucket))];
-  const bSel = nwChgV==='inv' && chB!=='all' ? chB.filter(b=>bkAll.includes(b)) : [];
-  if (bSel.length){
+  const bSel = nwChgV==='inv' && Array.isArray(chB) ? chB.filter(b=>bkAll.includes(b)) : [];
+  const bkDays = bSel => {
     // a row dated D is written at 3:15 AM on D: it holds the close of D−1 (and the trades dated before D),
     // so it belongs to the day before, like the Daily Change rows above. Realised stays on its trade date:
     // it lands on that day, or the next logged one if that day has no row.
@@ -3701,8 +3701,16 @@ function renderTrends(daily, monthly){
       const early = a && b && a!==b && Math.abs(dInv.get(b.date)) < 0.1*Math.abs(v) && Math.abs(dInv.get(a.date)) >= 0.5*Math.abs(v);
       const p = early ? a : (b || a); if (p) p.realised += v; });
     bp.forEach((p,i)=>{ const k = perKey(p), rl = i ? p.realised : 0; if (be.length && be[be.length-1].k===k){ be[be.length-1].p = p; be[be.length-1].rl += rl; } else be.push({ k, p, rl }); });
-    days = be.map((e,i)=>({ e, q: i ? be[i-1].p : bp[0] })).filter(o=>o.e.p!==o.q).map(({e,q})=>{ const p = e.p, inv = p.value - q.value, add = (p.invested - q.invested) - e.rl;
+    const days = be.map((e,i)=>({ e, q: i ? be[i-1].p : bp[0] })).filter(o=>o.e.p!==o.q).map(({e,q})=>{ const p = e.p, inv = p.value - q.value, add = (p.invested - q.invested) - e.rl;
       return { date:e.k, last:p.date, live:false, nw:p.value, chg:inv, pct:null, inv, invPct: q.value ? inv/q.value : null, cash:null, add, mkt: inv - add }; });
+    return days; };
+  if (bSel.length) days = bkDays(bSel);
+  // Everything: the line without construction plus the Construction bucket, on the days both have (from 7 Sep;
+  // the bucket log lags a day, so today's "so far" drops out). Under each day: net worth with construction in it.
+  else if (nwChgV==='inv' && chB==='every' && bkAll.includes('Construction')){
+    const cd = new Map(bkDays(['Construction']).map(y=>[y.date, y]));
+    days = days.filter(y=>cd.has(y.date) && y.inv!=null).map(y=>{ const c = cd.get(y.date), inv = y.inv + c.inv, base = (y.ib||0) + (c.nw - c.inv);
+      return { ...y, live:false, nw: y.nw + c.nw, chg: y.chg + c.inv, inv, invPct: base ? inv/base : null, add: (y.add||0) + c.add, mkt: inv - ((y.add||0) + c.add) }; });
   }
   chPicker(daily, monthly, bkAll);
   const dd = s => new Date(s+'T00:00:00');
@@ -4121,6 +4129,13 @@ let mgSel = null, mgAll = false;
 // Bucket picker: the Bucket Monthly Gains tab (from 22 Oct 2026) summed over the ticked
 // buckets; "Total" is the original whole-net-worth series. Regular is ticked by default.
 let mgMenu = false;   // the bucket choice is chB, shared with Change
+// Everything: the months without construction plus the Construction bucket's, for the months it has
+function mgEvery(monthly, bm){
+  const c = {}; mgBucketRows(bm, ['Construction']).forEach(o=>{ c[o.month] = o; });
+  return (monthly||[]).filter(m=>m && c[m.month]).map(m=>{ const o = c[m.month], r = { ...m };
+    ['opening','closing','netContribution','gain'].forEach(k=>{ r[k] = (m[k]||0) + (o[k]||0); });
+    r.returnPct = r.opening ? r.gain/r.opening : null; return r; });
+}
 function mgBucketRows(bm, sel){
   const by = {};
   bm.forEach(r=>{ if (!sel.includes(r.bucket)) return;
@@ -4128,25 +4143,30 @@ function mgBucketRows(bm, sel){
     o.opening += r.opening||0; o.closing += r.closing||0; o.netContribution += r.netContribution||0; o.gain += r.gain||0; });
   return Object.values(by).sort((a,b)=>a.monthEnd<b.monthEnd?-1:1).map(o=>({ ...o, returnPct: o.opening ? o.gain/o.opening : null }));
 }
+// the bucket picker's label and menu (Change and Monthly gains share them): the two whole views, then the buckets
+const bkLbl = (sel, bks) => chB==='every' ? 'Everything' : chB==='all' || !sel.length ? 'Excl. construction' : sel.length===bks.length ? 'All buckets' : sel.length===1 ? sel[0] : sel.length + ' buckets';
+const bkMenu = (a, sel, bks, CK) => `<div class="menu" role="menu">
+    <button role="menuitemradio" aria-checked="${chB==='every'}" data-${a}="__every">Everything<i>${chB==='every'?CK:''}</i></button>
+    <button role="menuitemradio" aria-checked="${chB==='all'}" data-${a}="__all">Excl. construction<i>${chB==='all'?CK:''}</i></button>
+    <div class="mghd">Buckets</div>
+    ${bks.map(b=>`<button role="menuitemcheckbox" aria-checked="${sel.includes(b)}" data-${a}="${esc(b)}">${esc(b)}<i>${sel.includes(b)?CK:''}</i></button>`).join('')}
+    <div class="mgnote">Everything has the construction fund, from 7 Sep. Both also have NPS; buckets don't.</div></div>`;
 function mgPicker(monthly, bm){
   const el = $('#mgPick'); if (!el) return;
   const bks = [...new Set(bm.map(r=>r.bucket))];
   if (!bks.length){ el.innerHTML = ''; return; }
-  const sel = chB==='all' ? [] : chB.filter(b=>bks.includes(b));
-  const lbl = chB==='all' ? 'Total' : sel.length===bks.length ? 'All buckets' : sel.length===1 ? sel[0] : sel.length + ' buckets';
+  const sel = Array.isArray(chB) ? chB.filter(b=>bks.includes(b)) : [], lbl = bkLbl(sel, bks);
   const CK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   el.innerHTML = `<button class="mgpk" data-mgpk aria-haspopup="menu" aria-expanded="${mgMenu}">${esc(lbl)}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>`
-    + (mgMenu ? `<div class="menu" role="menu">${bks.map(b=>`<button role="menuitemcheckbox" aria-checked="${sel.includes(b)}" data-mgb="${esc(b)}">${esc(b)}<i>${sel.includes(b)?CK:''}</i></button>`).join('')}
-        <button role="menuitemcheckbox" aria-checked="${chB==='all'}" data-mgb="__all">Total<i>${chB==='all'?CK:''}</i></button>
-        <div class="mgnote">Buckets from 7 Sep. Total also has NPS.</div></div>` : '');
+    + (mgMenu ? bkMenu('mgb', sel, bks, CK) : '');
   const re = () => renderTrends(D.data.daily, monthly);
   $('[data-mgpk]', el).onclick = e=>{ e.stopPropagation(); mgMenu = !mgMenu; re();
     if (mgMenu) setTimeout(()=>document.addEventListener('click', function off(ev){
       if (ev.target.closest && ev.target.closest('#mgPick .menu')) return;
       document.removeEventListener('click', off, true); if (mgMenu){ ev.stopPropagation(); ev.preventDefault(); mgMenu = false; re(); } }, true), 0); };
   $$('[data-mgb]', el).forEach(b=>b.onclick = e=>{ e.stopPropagation(); const v = b.dataset.mgb;
-    if (v==='__all') chB = 'all';
-    else { const cur = chB==='all' ? [] : sel.slice(), i = cur.indexOf(v);
+    if (v==='__all' || v==='__every') chB = v==='__all' ? 'all' : 'every';
+    else { const cur = Array.isArray(chB) ? sel.slice() : [], i = cur.indexOf(v);
       if (i>=0){ if (cur.length===1) return; cur.splice(i,1); } else cur.push(v);   // keep at least one ticked
       chB = cur; }
     save('inv.chB', chB); mgSel = null; nwDaySel = null; dselExit(); re(); });
@@ -4154,21 +4174,18 @@ function mgPicker(monthly, bm){
 function chPicker(daily, monthly, bks){
   const el = $('#chPick'); if (!el) return;
   if (nwChgV!=='inv' || !bks.length){ el.innerHTML = ''; return; }
-  const sel = chB==='all' ? [] : chB.filter(b=>bks.includes(b));
-  const lbl = chB==='all' || !sel.length ? 'Total' : sel.length===bks.length ? 'All buckets' : sel.length===1 ? sel[0] : sel.length + ' buckets';
+  const sel = Array.isArray(chB) ? chB.filter(b=>bks.includes(b)) : [], lbl = bkLbl(sel, bks);
   const CK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   el.innerHTML = `<button class="mgpk" data-chpk aria-haspopup="menu" aria-expanded="${chMenu}">${esc(lbl)}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>`
-    + (chMenu ? `<div class="menu" role="menu">${bks.map(b=>`<button role="menuitemcheckbox" aria-checked="${sel.includes(b)}" data-chb="${esc(b)}">${esc(b)}<i>${sel.includes(b)?CK:''}</i></button>`).join('')}
-        <button role="menuitemcheckbox" aria-checked="${chB==='all'}" data-chb="__all">Total<i>${chB==='all'?CK:''}</i></button>
-        <div class="mgnote">Buckets from 7 Sep. Total also has NPS.</div></div>` : '');
+    + (chMenu ? bkMenu('chb', sel, bks, CK) : '');
   const re = () => renderTrends(daily, monthly);
   $('[data-chpk]', el).onclick = e=>{ e.stopPropagation(); chMenu = !chMenu; re();
     if (chMenu) setTimeout(()=>document.addEventListener('click', function off(ev){
       if (ev.target.closest && ev.target.closest('#chPick .menu')) return;
       document.removeEventListener('click', off, true); if (chMenu){ ev.stopPropagation(); ev.preventDefault(); chMenu = false; re(); } }, true), 0); };
   $$('[data-chb]', el).forEach(b=>b.onclick = e=>{ e.stopPropagation(); const v = b.dataset.chb;
-    if (v==='__all') chB = 'all';
-    else { const cur = chB==='all' ? [] : sel.slice(), i = cur.indexOf(v);
+    if (v==='__all' || v==='__every') chB = v==='__all' ? 'all' : 'every';
+    else { const cur = Array.isArray(chB) ? sel.slice() : [], i = cur.indexOf(v);
       if (i>=0){ if (cur.length===1) return; cur.splice(i,1); } else cur.push(v);   // keep at least one ticked
       chB = cur; }
     save('inv.chB', chB); nwDaySel = null; mgSel = null; dselExit(); re(); });
@@ -4177,7 +4194,7 @@ function nwMonthlyCard(monthly){
   const el = $('#nwMonthly'); if (!el) return;
   const bm = (D && D.data && Array.isArray(D.data.bucketMonthly)) ? D.data.bucketMonthly : [];
   mgPicker(monthly, bm);
-  const src = bm.length && chB!=='all' ? mgBucketRows(bm, chB.filter(b=>bm.some(r=>r.bucket===b))) : monthly;   // monthly itself stays the Total series for re-renders
+  const src = !bm.length || chB==='all' ? monthly : chB==='every' ? mgEvery(monthly, bm) : mgBucketRows(bm, chB.filter(b=>bm.some(r=>r.bucket===b)));   // monthly itself stays the Total series for re-renders
   const ms = (src||[]).filter(m=>m && m.month);
   if (!ms.length){ el.innerHTML = '<div class="empty">No monthly gains yet</div>'; return; }
   const data = ms.slice(-12);
@@ -6884,7 +6901,11 @@ function invYrBody(p){
       <text class="m" x="${x+14}" y="${H-6}" text-anchor="middle">${esc(String(o.y).slice(2)+'–'+String(o.y+1).slice(2))}</text></g>`; }).join('');
   const cats = Object.entries(so.cat).sort((a,b)=>(/^charges?$/i.test(a[0]))-(/^charges?$/i.test(b[0])) || (b[1].b-b[1].s)-(a[1].b-a[1].s));   // Charges always last
   const catRows = cats.map(([k,c])=>`<div class="ivr"><span class="n">${esc(k)}<small class="num money">${c.b ? 'Bought ' + fCompact(c.b) : ''}${c.b && c.s ? ' · ' : ''}${c.s ? 'Sold ' + fCompact(c.s) : ''}</small></span><b class="num money ${c.b-c.s<0?'down':''}">${c.b-c.s<0?'−':''}${fINR2(Math.abs(c.b-c.s))}</b></div>`).join('');
-  const list = ys.slice().reverse().map(o=>`<button class="ivy ${o.y===so.y?'on':''}" data-ivy="${o.y}"><span class="n">${esc(lbl(o.y))}${o.y===cur?' <i>so far</i>':''}<small class="num money">Bought ${fCompact(o.b)} · Sold ${fCompact(o.s)}</small></span><b class="num money ${o.b-o.s<0?'down':''}">${o.b-o.s<0?'−':''}${fINR2(Math.abs(o.b-o.s))}</b></button>`).join('');
+  // newest first, like Net worth's days: the year's net change on the right, the running total after it on the left
+  let run = 0; const cum = {}; ys.forEach(o=>{ run += o.b - o.s; cum[o.y] = run; });
+  const list = ys.slice().reverse().map(o=>{ const v = o.b - o.s, before = cum[o.y] - v, pc = before > 0 ? v/before : null;
+    return `<div class="r ivd ${o.y===so.y?'cur':''}" role="button" data-ivy="${o.y}"><div class="a">${esc(lbl(o.y))}${o.y===cur?' <span class="faint">so far</span>':''}<small class="num money">${fINR(cum[o.y])}</small></div>
+      <div class="z num money ${cls(v)}">${fChg(v)}${pc!=null?` <span class="p">${fPct(Math.abs(pc),false)}</span>`:''}<small>Bought ${fCompact(o.b)} · Sold ${fCompact(o.s)}</small></div></div>`; }).join('');
   return `<div class="card pg-card pg-hero ivhero">
       <div class="k">Net new money, all years</div><div class="pg-big num money">${bigAmt(fINR2(totNet))}</div>
       <div class="ivsub num money">${tipS(totB, fCompact(totB))} bought · ${tipS(totB - totNet, fCompact(totB - totNet))} sold since ${esc(lbl(ys[0].y))}</div>
@@ -6896,7 +6917,7 @@ function invYrBody(p){
       ${catRows}
     </div>
     <div class="sechead"><h2>By year</h2></div>
-    <div class="card tight ivlist">${list}</div>`;
+    <div class="card dl ivdl"><div class="dlh"><span>Year</span><span>Net</span></div>${list}</div>`;
 }
 function wireInvYr(p){
   if (!txnsExhausted){ (async()=>{ try{ const j = await api({ action:'txns', limit: 5000 }), rows = j && j.data && j.data.transactions;

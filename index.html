@@ -2371,7 +2371,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-25am';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-25an';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -8635,11 +8635,15 @@ async function saveAccount(p){
     }
   } else d.accounts.push(rec);
   popPage(); rerenderSpendViews();
+  // held like an entry save: a read already in flight (from before this account existed) mustn't replace the list
+  xSeq++; xPending++;
   try{
     const r = await apiPost(was ? 'editAccount' : 'addAccount', { ...rec, name: was ? oldName : name, newName: name });
+    xPending--; xSeq++;
     toast(was ? (r && r.renamed ? `Renamed · ${r.renamed} entr${r.renamed===1?'y':'ies'} updated` : 'Account saved') : `Added ${name}`);
     save('inv.exp', X); loadExpenses(true);
   }catch(e){
+    xPending--; xSeq++;
     const o = JSON.parse(snap); d.accounts = o.a; d.entries = o.e; d.incomes = o.i; d.transfers = o.t;
     rerenderSpendViews(); toast(e.message || 'Could not save the account');
   }
@@ -8649,10 +8653,13 @@ async function removeAccount(p){
   const d = xd(), uses = accUses(a.name), i = d.accounts.indexOf(a);
   if (uses) a.active = false; else d.accounts.splice(i,1);
   popPage(); setTimeout(()=>{ const top = pageStack[pageStack.length-1]; if (top && top.kind==='acct' && top.acc===a.name) popPage(); rerenderSpendViews(); }, 320);
+  xSeq++; xPending++;
   try{
     const r = await apiPost('removeAccount', { name:a.name });
+    xPending--; xSeq++;
     toast(r && r.hidden ? `${a.name} hidden` : `${a.name} removed`); loadExpenses(true);
   }catch(e){
+    xPending--; xSeq++;
     if (uses) a.active = true; else d.accounts.splice(i,0,a);
     rerenderSpendViews(); toast(e.message || 'Could not remove the account');
   }

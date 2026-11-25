@@ -386,6 +386,7 @@ body.dselecting .dl .dr.picked::before{box-shadow:none;background:var(--blue) ur
 .mgsh .menu button i{width:20px;height:20px;flex:none;color:var(--blue)}
 .mgsh .menu button i svg{width:20px;height:20px}
 .chbn{margin-top:8px;font-size:12px;color:var(--ink-3);text-align:center}
+.acsh .menu{max-height:62vh;overflow-y:auto;z-index:30}.acsh .menu .mghd:first-child{border-top:0}.acsh .menu .acall{justify-content:center;color:var(--blue);border-top:1px solid var(--hairline)}
 .mgsh .menu .mghd{padding:10px 12px 2px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);border-top:1px solid var(--hairline)}
 .mgsh .menu .mgnote{width:0;min-width:100%;box-sizing:border-box;padding:8px 12px 6px;font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--hairline)}
 .nwmg .mgtop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
@@ -2370,7 +2371,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-24ak';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-25am';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -6191,6 +6192,15 @@ function renderSpend(){
   $$('#spBody [data-liqx]').forEach(b=>b.onclick=()=>{ const lx = new Set(load('inv.liqEx')||[]), n = b.dataset.liqx;
     lx.has(n) ? lx.delete(n) : lx.add(n); save('inv.liqEx', [...lx]); renderSpend(); });
   $$('#spBody [data-liqall]').forEach(b=>b.onclick=()=>{ save('inv.liqEx', []); renderSpend(); });
+  const apk = $('#spBody [data-accpk]');
+  if (apk) apk.onclick = e=>{ e.stopPropagation(); accMenu = !accMenu; renderSpend();
+    if (accMenu) setTimeout(()=>document.addEventListener('click', function off(ev){
+      if (ev.target.closest && ev.target.closest('.acsh .menu')) return;
+      document.removeEventListener('click', off, true); if (accMenu){ ev.stopPropagation(); ev.preventDefault(); accMenu = false; renderSpend(); } }, true), 0); };
+  $$('#spBody [data-acchx]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const ah = new Set(load('inv.accHide')||[]), n = b.dataset.acchx;
+    if (ah.has(n)) ah.delete(n); else { const left = xAccounts().filter(a=>accKind(a)!=='construction' && !ah.has(a.name)).length; if (left <= 1) return; ah.add(n); }   // keep at least one
+    save('inv.accHide', [...ah]); renderSpend(); });
+  $$('#spBody [data-accall]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); save('inv.accHide', []); renderSpend(); });
   $$('#spBody [data-recerr]').forEach(b=>b.onclick=()=>{ const R = (xd()||{}).recErr; if (R && R.items) alert(R.items.map(x=>`${x.name}${x.ym ? ' · '+ymLabel(x.ym) : ''}\n${x.msg}`).join('\n\n') + '\n\nIt will be posted on the next run once fixed, or you can add it by hand.'); pushPage({ kind:'recurring' }); });
   $$('#spBody [data-bankgo]').forEach(b=>b.onclick=()=>{ const h = [...document.querySelectorAll('#spBody .sechead h2')].find(x=>x.textContent.trim()==='Bank'); if (h) h.scrollIntoView({ behavior:'smooth', block:'start' }); });
   $$('#spBody [data-constr]').forEach(b=>b.onclick=()=>pushPage({ kind:'constr' }));
@@ -6678,12 +6688,14 @@ function xsAll(){
 }
 // what a suggestion can be: a name (note / payee / source), a category or income type, a subcategory, an account
 const XS_FIELDS = [['name','Name', e=>[e.note || e.desc || e.payee || e.source]], ['cat','Category', e=>[e.category || e.type]],
-  ['sub','Subcategory', e=>[e.sub]], ['acc','Account', e=>[e.account, e.from, e.to]]];
+  ['sub','Subcategory', e=>[e.sub]], ['acc','Account', e=>[e.account, e.from, e.to]], ['amt','Amount', e=>[xsAmt(e)]]];
+// amounts are searched as whole rupees in plain digits: "₹1,500" and "1500" both find ₹1,500
+const xsAmt = e => e.amount ? String(Math.round(Math.abs(e.amount))) : '', xsNum = t => /^₹?\s*[\d,]+(\.\d+)?$/.test(t) ? String(Math.round(Number(t.replace(/[₹,\s]/g,'')))) : null;
 const xsFilterOn = f => f.per!=='all' || f.type!=='all' || f.acc || f.cat || f.min || f.max;
 function xsMatch(p){
   const f = p.f, [a,b] = xsRange(f), pk = p.pick;
   const lo = f.min!=='' && f.min!=null ? Number(String(f.min).replace(/,/g,'')) : null, hi = f.max!=='' && f.max!=null ? Number(String(f.max).replace(/,/g,'')) : null;
-  const terms = pk && pk.f==='*' ? String(pk.v).toLowerCase().split(/\s+/).filter(Boolean) : [];
+  const terms = pk && pk.f==='*' ? String(pk.v).toLowerCase().split(/\s+/).filter(Boolean).map(t=>xsNum(t) || t) : [];
   const fld = pk && pk.f!=='*' ? XS_FIELDS.find(x=>x[0]===pk.f) : null;
   return xsAll().filter(x=>{ const e = x.e;
     if (e.date < a || e.date > b) return false;
@@ -6692,20 +6704,21 @@ function xsMatch(p){
     if (f.cat && (x.k==='tr' || (x.k==='in' || x.k==='adj' ? e.type : e.category)!==f.cat)) return false;
     const v = Math.abs(e.amount||0); if (lo!=null && v < lo) return false; if (hi!=null && v > hi) return false;
     if (fld && !fld[2](e).includes(pk.v)) return false;
-    if (terms.length){ const q = qWords(e.note, e.desc, e.category, e.sub, e.account, e.source, e.type, e.from, e.to, e.remark, e.payee); if (!terms.every(t=>q.includes(t))) return false; }
+    if (terms.length){ const q = qWords(e.note, e.desc, e.category, e.sub, e.account, e.source, e.type, e.from, e.to, e.remark, e.payee, xsAmt(e)); if (!terms.every(t=>q.includes(t))) return false; }
     return true;
   });
 }
 // suggestions for what's typed: names first, then categories, subcategories, accounts; each with how many entries
 function xsSuggest(q){
   q = q.toLowerCase().trim(); if (!q) return [];
-  const seen = new Map();
-  xsAll().forEach(({e})=>XS_FIELDS.forEach(([f,,get])=>get(e).forEach(v=>{ if (!v) return; const lv = String(v).toLowerCase(); if (!lv.includes(q)) return;
-    const k = f+'|'+v, o = seen.get(k) || { f, v, n:0, pre: lv.startsWith(q) }; o.n++; seen.set(k, o); })));
-  const ord = { name:0, cat:1, sub:2, acc:3 };
-  return [...seen.values()].sort((a,b)=>(b.pre-a.pre) || (ord[a.f]-ord[b.f]) || (b.n-a.n)).slice(0, 8);
+  const seen = new Map(), qn = xsNum(q);   // a number: amounts that start with it (1500 → ₹1,500, ₹15,000…)
+  xsAll().forEach(({e})=>XS_FIELDS.forEach(([f,,get])=>get(e).forEach(v=>{ if (!v) return; const lv = String(v).toLowerCase();
+    if (f==='amt' ? !(qn && lv.startsWith(qn)) : !lv.includes(q)) return;
+    const k = f+'|'+v, o = seen.get(k) || { f, v, n:0, pre: f==='amt' ? lv===qn : lv.startsWith(q) }; o.n++; seen.set(k, o); })));
+  const ord = qn ? { amt:0, name:1, cat:2, sub:3, acc:4 } : { name:0, cat:1, sub:2, acc:3, amt:4 };   // typing a number: amounts first, the exact one on top
+  return [...seen.values()].sort((a,b)=>(b.pre-a.pre) || (ord[a.f]-ord[b.f]) || (qn && a.f==='amt' && b.f==='amt' ? a.v.length-b.v.length || a.v-b.v : 0) || (b.n-a.n)).slice(0, 8);
 }
-const XS_SUG_IC = { name: SRCH_ICON, cat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.5V5a1.5 1.5 0 0 1 1.5-1.5h7.5L20.5 11.5l-9 9z"/><circle cx="8" cy="8" r="1.4"/></svg>',
+const XS_SUG_IC = { amt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h10M7 9.5h10M10 5c4.5 0 4.5 9 0 9H7l7 6"/></svg>', name: SRCH_ICON, cat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.5V5a1.5 1.5 0 0 1 1.5-1.5h7.5L20.5 11.5l-9 9z"/><circle cx="8" cy="8" r="1.4"/></svg>',
   sub:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v9a3 3 0 0 0 3 3h9"/><path d="M15 12.5l3.5 3.5-3.5 3.5"/></svg>',
   acc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18M7 15h3"/></svg>' };
 function xsResultsHtml(p){
@@ -6713,10 +6726,10 @@ function xsResultsHtml(p){
   if (!p.pick && p.q) {   // typing: suggestions
     const S = xsSuggest(p.q), lbl = Object.fromEntries(XS_FIELDS.map(x=>[x[0],x[1]]));
     return `<div class="card tight xs-sug">${S.map((x,i)=>`<button class="row" data-sug="${i}"><span class="xs-si">${XS_SUG_IC[x.f]}</span>
-        <div class="l"><div class="n">${esc(x.v)}</div><div class="m">${lbl[x.f]} · ${x.n} ${x.n===1?'entry':'entries'}</div></div></button>`).join('')}
+        <div class="l"><div class="n">${x.f==='amt' ? '<span class="num money">' + fINR(Number(x.v)) + '</span>' : esc(x.v)}</div><div class="m">${lbl[x.f]} · ${x.n} ${x.n===1?'entry':'entries'}</div></div></button>`).join('')}
       <button class="row" data-sug="*"><span class="xs-si">${SRCH_ICON}</span><div class="l"><div class="n">Search “${esc(p.q)}” everywhere</div></div></button></div>`;
   }
-  if (!p.pick && !xsFilterOn(f)) return '<div class="empty">Search a name, category or account</div>';
+  if (!p.pick && !xsFilterOn(f)) return '<div class="empty">Search a name, category, account or amount</div>';
   const L = xsMatch(p);
   const sum = k => L.filter(k).reduce((t,x)=>t+(x.e.amount||0),0);
   const inc = sum(x=>x.k==='in'), exp = sum(TXF.ex), tr = sum(x=>x.k==='tr');
@@ -6745,7 +6758,7 @@ function xSearchBody(p){
       ${f.type==='tr' ? '' : row('Category', sel('cat', f.cat, cats, 'Any'))}
       ${row('Amount', `<span class="xs-amt"><input class="rin" data-xa="min" inputmode="decimal" placeholder="Min" value="${esc(f.min)}"><i>–</i><input class="rin" data-xa="max" inputmode="decimal" placeholder="Max" value="${esc(f.max)}"></span>`)}
     </div>${on ? '<button class="xs-clr" data-xclr>Clear filters</button>' : ''}</div>` : '';
-  return `<div class="srow xs-top"><div class="search" id="xsBox">${searchInner(p.pick ? p.pick.v : (p.q||''), 'Name, category or account')}</div>
+  return `<div class="srow xs-top"><div class="search" id="xsBox">${searchInner(p.pick ? p.pick.v : (p.q||''), 'Name, category, account or amount')}</div>
       <button class="fbtn ${on||p.fo?'on':''}" data-xfo aria-label="Filters" aria-expanded="${p.fo?'true':'false'}">${FILTER_IC}</button></div>
     ${panel}<div id="xsRes">${xsResultsHtml(p)}</div>`;
 }
@@ -7227,7 +7240,7 @@ const cardMark = a => { const m = CARD_ICONS.find(([re])=>re.test(a.name)); retu
 const accMark = a => !a ? bankMark('') : (isCashAcc(a) || /\bcash\b/i.test(a.name)) ? `<div class="tile in">${ICONS.cash}<img class="ok" src="${LOGO_INLINE.CASH}" alt=""></div>`
   : (accKind(a)==='card' && cardMark(a)) || bankMark(a.name);
 const nameMark = n => { const a = accByName(n); return a ? accMark(a) : bankMark(n); };
-let liqOpen = false;   // the Liquid card's account picker
+let liqOpen = false, accMenu = false;   // the Liquid card's account picker; the Accounts list's show/hide menu
 function spAccountsHtml(){
   const acc = xAccounts(); if (!acc.length) return '<div class="empty">No accounts yet — add them to the Accounts tab in your sheet</div>';
   // each card on its own: one card in credit must not hide another card's dues
@@ -7253,7 +7266,14 @@ function spAccountsHtml(){
         ${lx.size ? '<div class="lft"><button data-liqall>Show all</button></div>' : ''}</div>` : ''}
 </div>${ter ? `<div class="lpills">${ter}</div>` : ''}`;
   // the Accounts / Transfers / Income switch is gone: transfers and income are in Activity (filter)
-  return head + bankBannerHtml() + ziRemindHtml() + accGroupsHtml(acc) + `<button class="addacc" data-addacc>+ Add account</button>`;
+  // which accounts the list shows: a display choice on this phone only (balances and totals still count them all)
+  const ah = new Set(load('inv.accHide')||[]), la = acc.filter(a=>accKind(a)!=='construction'), nh = la.filter(a=>ah.has(a.name)).length;
+  const CK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const pick = `<div class="shr"><button class="mgpk" data-accpk aria-haspopup="menu" aria-expanded="${accMenu}">${nh ? `${la.length - nh} of ${la.length}` : 'All'}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    ${accMenu ? `<div class="menu" role="menu">${ACC_GROUPS.filter(([k])=>k!=='construction').map(([k,l])=>{ const g = la.filter(a=>accKind(a)===k); return g.length ? `<div class="mghd">${esc(l)}</div>` + g.map(a=>`<button role="menuitemcheckbox" aria-checked="${!ah.has(a.name)}" data-acchx="${esc(a.name)}">${esc(a.name)}<i>${ah.has(a.name)?'':CK}</i></button>`).join('') : ''; }).join('')}
+      ${nh ? '<button class="acall" data-accall>Show all</button>' : ''}</div>` : ''}</div>`;
+  // the picker sits on the right of the first group's heading
+  return head + bankBannerHtml() + ziRemindHtml() + accGroupsHtml(acc.filter(a=>!ah.has(a.name))).replace(/<div class="sechead">(<h2>[^<]*<\/h2>)<\/div>/, (m,h)=>`<div class="sechead mgsh acsh">${h}${pick}</div>`) + `<button class="addacc" data-addacc>+ Add account</button>`;
 }
 // The construction fund: Net Worth's For Construction rows, with the rows that
 // have a Construction account taken live from it. The table's rows carry the account's

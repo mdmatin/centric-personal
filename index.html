@@ -2180,7 +2180,7 @@ html[data-theme=dark] .lg .lgh1{color:#ffd60a}
 /* ---------- every pop-up menu in the iPhone's own menu style ----------
    frosted grey glass, white text, the tick on the left, no lines between rows; the same look the
    system gives a plain dropdown (the Holdings sort), so the app's own menus match it */
-.menu,.fmenu{background:rgba(118,118,124,.72);-webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%);
+.menu,.fmenu{background:rgba(118,118,118,.94);-webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%);
   border-radius:26px;padding:8px 0;box-shadow:0 18px 50px rgba(0,0,0,.28);color:#fff}
 html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,64,.8);box-shadow:0 18px 50px rgba(0,0,0,.6)}
 .menu button,.fmenu button,.mgsh .menu button,.fmenu button.fa,.fmenu button.fa.on{position:relative;display:flex;align-items:center;justify-content:flex-start;gap:10px;
@@ -2203,6 +2203,14 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
 .acsh .menu .acall{justify-content:center;padding-left:22px;color:#a8cbff;font-weight:600;border-top:.5px solid rgba(255,255,255,.22)}
 .menu .appear{border-top:.5px solid rgba(255,255,255,.22)}.menu .appear span{color:rgba(255,255,255,.6)}
 .menu .appear .seg button{color:inherit;padding:6px 4px;justify-content:center}
+
+/* menus open like the iPhone's: they grow out of the corner they hang from with a slight overshoot.
+   A menu put back by a re-render (a tick toggled) appears in place, marked .still by the watcher in the script */
+@keyframes menuPop{0%{opacity:0;transform:scale(.6)}60%{opacity:1}100%{opacity:1;transform:scale(1)}}
+.menu,.fmenu{transform-origin:top right;animation:menuPop .34s cubic-bezier(.2,.95,.25,1.12) both}
+.fmenu[style*="left"]{transform-origin:top center}
+.menu.still,.fmenu.still{animation:none}
+@media (prefers-reduced-motion:reduce){.menu,.fmenu{animation-duration:.01s}}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&amp;text=That%27s%20everything%20for%20today.&amp;display=swap">
 </head>
@@ -2410,7 +2418,15 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
 /* ==========================================================================
    CONFIG
    ========================================================================== */
-const BUILD = '2026-11-26as';        // shown in the app, so we can tell which copy is live
+// a menu that reappears straight after one closed (the page or menu re-rendered after a tap) shouldn't pop
+// again: mark it .still before it's drawn, so only a fresh open animates
+(()=>{ let gone = 0; const isM = n => n.nodeType===1 && (n.classList.contains('menu') || n.classList.contains('fmenu'));
+  const has = n => isM(n) || (n.nodeType===1 && n.querySelector && n.querySelector('.menu,.fmenu'));
+  new MutationObserver(ms=>{ ms.forEach(m=>{ m.removedNodes.forEach(n=>{ if (has(n)) gone = Date.now(); });
+    m.addedNodes.forEach(n=>{ if (n.nodeType!==1) return; const L = isM(n) ? [n] : [...(n.querySelectorAll ? n.querySelectorAll('.menu,.fmenu') : [])];
+      if (L.length && Date.now() - gone < 400) L.forEach(x=>x.classList.add('still')); }); }); })
+    .observe(document.documentElement, { childList:true, subtree:true }); })();
+const BUILD = '2026-11-26at';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };

@@ -2351,8 +2351,9 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
       <div class="sechead mgsh"><h2>Change</h2><div class="shr" id="chPick"></div></div>
       <div class="card nwp nwd" id="nwDays"></div>
       <div class="card dl" id="nwDayList"></div>
-      <div class="sechead mgsh"><h2>Monthly gains</h2><div class="shr" id="mgPick"></div></div>
-      <div class="card nwmg" id="nwMonthly"></div>
+      <i id="nwMgSlot" hidden></i>
+      <div id="nwMgWrap"><div class="sechead mgsh"><h2>Monthly gains</h2><div class="shr" id="mgPick"></div></div>
+      <div class="card nwmg" id="nwMonthly"></div></div>
       <div class="sechead"><h2>What moved it</h2></div>
       <div class="card nwp" id="nwMove"></div>
       </div>
@@ -2459,7 +2460,7 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
     m.addedNodes.forEach(n=>{ if (n.nodeType!==1) return; const L = isM(n) ? [n] : [...(n.querySelectorAll ? n.querySelectorAll('.menu,.fmenu') : [])];
       if (L.length && Date.now() - gone < 400) L.forEach(x=>x.classList.add('still')); }); }); })
     .observe(document.documentElement, { childList:true, subtree:true }); })();
-const BUILD = '2026-11-29ba';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-29bb';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3749,6 +3750,9 @@ function nw2Months(monthly){
 }
 function renderNw2(daily, monthly){
   const el = $('#nw2'); if (!el) return;
+  // the old page's Monthly gains (chart, table and bucket picker) is used on this page too: it is moved
+  // here, and back into the old page when that is shown, so both draw from the same card
+  const mgw = $('#nwMgWrap'), slot = $('#nwMgSlot'); if (mgw && slot && mgw.closest('#nw2')) slot.after(mgw);
   const old = $('#nwOld'); el.hidden = nwOldOn; if (old) old.hidden = !nwOldOn;
   if (nwOldOn) return;
   const d = D && D.data, nw = d && d.netWorth, h = (nw && nw.head) || {}, cash = liveCash();
@@ -3802,10 +3806,8 @@ function renderNw2(daily, monthly){
     list = `<div class="card nw2d">${show.map(x=>`<div class="row2 ${x.k===nw2Sel?'cur':''}" data-nw2b="${esc(x.k)}"><div class="a">${esc(x.cap)}${Math.abs(x.add)>=1000 ? `<small>${x.add>0?'Put in':'Took out'} ${fINR(Math.abs(x.add))}</small>` : ''}</div>
         <div class="z num money ${cls(x.v)}">${fChg(x.v)}${x.pct!=null ? ` <small>${fPct(x.pct)}</small>` : ''}</div></div>`).join('')}
       ${L.length > show.length ? `<button class="more" data-nw2all>Show all ${L.length} days</button>` : ''}</div>`; }
-  const ML = M.slice(-12).reverse(), ym = new Date().toLocaleDateString('en-GB',{month:'short',year:'numeric'});
-  const months = ML.length ? `<div class="sechead"><h2>Monthly</h2><span class="nw2hint">market gain</span></div><div class="card nw2d">${ML.map(m=>`<div class="row2"><div class="a">${esc(m.month)}${m.month===ym ? ' <span class="faint">so far</span>' : ''}${Math.abs(m.netContribution||0)>=1000 ? `<small>${(m.netContribution||0)>0?'Put in':'Took out'} ${fKL(Math.abs(m.netContribution)).replace(/^−/,'')}</small>` : ''}</div>
-      <div class="z num money ${cls(m.gain)}">${fChg(m.gain||0)}${m.returnPct!=null ? ` <small>${fPct(m.returnPct)}</small>` : ''}</div></div>`).join('')}</div>` : '';
-  el.innerHTML = hero + card + list + months + `<button class="nw2old" data-nwold>OLD Networth<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>`;
+  el.innerHTML = hero + card + list + `<div id="nw2mg"></div>` + `<button class="nw2old" data-nwold>OLD Networth<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>`;
+  { const s2 = $('#nw2mg'); if (s2 && mgw) s2.appendChild(mgw); }
   const re = () => renderNw2(daily, monthly);
   $$('#nw2 [data-nwv]').forEach(b=>b.onclick=()=>{ nwV = b.dataset.nwv; save('inv.nwV', nwV); nw2Sel = null; re(); });
   $$('#nw2 [data-nw2r]').forEach(b=>b.onclick=()=>{ nw2R = b.dataset.nw2r; save('inv.nw2R', nw2R); nw2Sel = null; nw2All = false; re(); });

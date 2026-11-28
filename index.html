@@ -2239,6 +2239,7 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
 .nw2d .z{font-size:15.5px;font-weight:600;text-align:right;white-space:nowrap}.nw2d .z small{font-size:12.5px;font-weight:500;opacity:.75;margin-left:3px}
 .nw2d .more{display:block;width:100%;text-align:center;color:var(--blue);font-size:14px;padding:12px 0 6px;border-top:1px solid var(--hairline)}
 .nw2old{display:flex;align-items:center;justify-content:center;gap:4px;width:calc(100% - 32px);margin:4px 16px 18px;color:var(--blue);font-size:15px}.nw2old svg,.nw2back svg{width:15px;height:15px}
+.nw2note{margin:2px 20px 10px;font-size:12px;line-height:1.4;color:var(--ink-3)}
 .nw2back{display:flex;align-items:center;gap:4px;margin:0 16px 12px;color:var(--blue);font-size:15px}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&amp;text=That%27s%20everything%20for%20today.&amp;display=swap">
@@ -2460,7 +2461,7 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
     m.addedNodes.forEach(n=>{ if (n.nodeType!==1) return; const L = isM(n) ? [n] : [...(n.querySelectorAll ? n.querySelectorAll('.menu,.fmenu') : [])];
       if (L.length && Date.now() - gone < 400) L.forEach(x=>x.classList.add('still')); }); }); })
     .observe(document.documentElement, { childList:true, subtree:true }); })();
-const BUILD = '2026-11-29bb';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-29be';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3711,8 +3712,8 @@ let BD = load('inv.bd'), bdBusy = false;
 async function loadBucketDaily(){
   if (!cfg || bdBusy || (BD && Date.now() - BD.at < 6e5)) return;
   bdBusy = true;
-  try{ const j = await api({ action:'bucketDaily' }), rows = j && j.data && j.data.bucketDaily;
-    if (Array.isArray(rows)){ BD = { at: Date.now(), rows }; save('inv.bd', BD); if (activeView==='trend' && D) renderTrends(D.data.daily, D.data.monthly); } }
+  try{ const j = await api({ action:'bucketDaily' }), rows = j && j.data && j.data.bucketDaily, tot = j && j.data && j.data.totalsDaily;
+    if (Array.isArray(rows)){ BD = { at: Date.now(), rows, tot: Array.isArray(tot) ? tot : [] }; save('inv.bd', BD); if (activeView==='trend' && D) renderTrends(D.data.daily, D.data.monthly); } }
   catch(e){}
   finally{ bdBusy = false; }
 }
@@ -3739,14 +3740,25 @@ function nw2Series(keep){
   rls.forEach(([d,v])=>{ const b = bp.find(x=>x.date >= d), a = bp.find(x=>x.date >= nw2Prev(d));
     const early = a && b && a!==b && Math.abs(dInv.get(b.date)) < 0.1*Math.abs(v) && Math.abs(dInv.get(a.date)) >= 0.5*Math.abs(v);
     const p = early ? a : (b || a); if (p) p.realised += v; });
-  return bp.slice(1).map((p,i)=>{ const q = bp[i], chg = p.value - q.value, add = (p.invested - q.invested) - p.realised;
+  const out = bp.slice(1).map((p,i)=>{ const q = bp[i], chg = p.value - q.value, add = (p.invested - q.invested) - p.realised;
     return { date:p.date, value:p.value, base:q.value, mkt:chg - add, add }; });
+  // Everything: the days before the bucket log began come from Daily Change › TOTALS (all investments; nothing
+  // was set aside for construction then). Its realised is a running total, so each day takes the change in it.
+  // Only day-to-day moves are used, so there's no jump where the two logs meet. Excl. construction starts at the log.
+  const T = keep('Construction') && BD && Array.isArray(BD.tot) ? BD.tot.map(t=>({ ...t, date: nw2Prev(t.date) })).sort((a,b)=>a.date<b.date?-1:1) : [];
+  const start = bp.length ? bp[0].date : null;
+  const pre = []; for (let i = 1; i < T.length; i++){ const p = T[i], q = T[i-1]; if (start && p.date > start) break;
+    const chg = p.value - q.value, add = (p.invested - q.invested) - (p.realised - q.realised); pre.push({ date:p.date, value:p.value, base:q.value, mkt:chg - add, add }); }
+  return pre.filter(x=>!start || x.date < start).concat(out);
 }
-function nw2Months(monthly){
-  const bm = (D && D.data && Array.isArray(D.data.bucketMonthly)) ? D.data.bucketMonthly : [], c = {};
-  if (nwV==='every' && bm.length) mgBucketRows(bm, ['Construction']).forEach(o=>{ c[o.month] = o; });
-  return (monthly||[]).filter(m=>m && m.month).map(m=>{ const o = c[m.month]; if (!o) return m; const r = { ...m };
-    ['opening','closing','netContribution','gain'].forEach(k=>{ r[k] = (m[k]||0) + (o[k]||0); }); r.returnPct = r.opening ? r.gain/r.opening : null; return r; });
+// Months, added up from the same daily figures as Daily moves, so the two always agree. Everything reaches back to
+// mid-April 2026 (Daily Change totals before the bucket log); Excl. construction starts with the log on 7 Sep 2026.
+function nw2Months(){
+  const S = nw2Series(nwV==='every' ? ()=>true : b=>b!=='Construction'), by = {};
+  S.forEach(x=>{ const k = x.date.slice(0,7), o = by[k] || (by[k] = { k, opening:x.base, gain:0, netContribution:0, closing:x.value });
+    o.gain += x.mkt; o.netContribution += x.add; o.closing = x.value; });
+  return Object.values(by).sort((a,b)=>a.k<b.k?-1:1).map(o=>({ month: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+o.k.slice(5,7)-1] + ' ' + o.k.slice(0,4),
+    monthEnd:o.k, opening:o.opening, closing:o.closing, gain:o.gain, netContribution:o.netContribution, returnPct: o.opening ? o.gain/o.opening : null }));
 }
 function renderNw2(daily, monthly){
   const el = $('#nw2'); if (!el) return;
@@ -3771,12 +3783,11 @@ function renderNw2(daily, monthly){
       ${last ? `<div class="nw2p"><span class="pill ${cls(last.mkt)} num money">${fChg(last.mkt)} · ${fPct(last.base ? last.mkt/last.base : 0)}</span> <span>market on ${esc(lab(last.date))}</span></div>` : ''}
       <div class="nw2s"><div><span>Investments</span><b class="num money">${fINR(invV)}</b></div><div><span>Cash</span><b class="num money">${fINR(cashV)}</b></div></div></div>`;
   // the period: days for 1W/1M, weeks for 3M, months beyond
-  const R = nw2R, M = nw2Months(monthly);
-  let items = [], sum = 0, add = 0, base = 0, word = '';
+  const R = nw2R, M = nw2Months();
+  let items = [], sum = 0, add = 0, base = 0;
   if (R==='1W' || R==='1M' || R==='3M'){
     const n = R==='1W' ? 7 : R==='1M' ? 30 : 91, cut = S.length ? (()=>{ const t = new Date(S[S.length-1].date+'T00:00:00'); t.setDate(t.getDate() - n + 1); return nw2Ymd(t); })() : '', w = S.filter(x=>x.date >= cut);   // calendar days, as the old page counts them (a day with no log isn't padded in from further back)
     sum = w.reduce((a,x)=>a+x.mkt,0); add = w.reduce((a,x)=>a+x.add,0); base = w.length ? w[0].base : 0;
-    word = R==='1W' ? 'the last 7 days' : R==='1M' ? 'the last 30 days' : 'the last 3 months';
     if (R==='3M'){ const wk = []; w.forEach(x=>{ const dt = new Date(x.date+'T00:00:00'); dt.setDate(dt.getDate() - (dt.getDay()+6)%7); const k = nw2Ymd(dt);
         if (wk.length && wk[wk.length-1].k===k){ wk[wk.length-1].v += x.mkt; wk[wk.length-1].add += x.add; } else wk.push({ k, v:x.mkt, add:x.add, base:x.base }); });
       items = wk.map(x=>{ const dt = new Date(x.k+'T00:00:00'); return { k:x.k, v:x.v, l1:dt.getDate()+'', l2:dt.toLocaleDateString('en-GB',{month:'short'}), cap:'Week of '+dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'}), pct: x.base ? x.v/x.base : null, add:x.add }; }); }
@@ -3784,7 +3795,6 @@ function renderNw2(daily, monthly){
   } else {
     const n = R==='6M' ? 6 : R==='1Y' ? 12 : 999, w = M.slice(-n);
     sum = w.reduce((a,m)=>a+(m.gain||0),0); add = w.reduce((a,m)=>a+(m.netContribution||0),0); base = w.length ? w[0].opening||0 : 0;
-    word = R==='All' ? 'all months logged' : R==='6M' ? 'the last 6 months' : 'the last 12 months';
     items = w.map(m=>{ const p = String(m.month).split(' '); return { k:m.month, v:m.gain||0, l1:(p[0]||'').slice(0,3), l2:(p[1]||'').slice(2), cap:m.month, pct:m.returnPct, add:m.netContribution||0 }; });
   }
   if (nw2Sel==null || !items.some(x=>x.k===nw2Sel)) nw2Sel = items.length ? items[items.length-1].k : null;
@@ -3797,7 +3807,7 @@ function renderNw2(daily, monthly){
           : sel ? `<div class="nw2c"><span>${esc(sel.cap)}</span><b class="num money ${cls(sel.v)}">${fChg(sel.v)}${sel.pct!=null ? ` <small>${fPct(sel.pct)}</small>` : ''}</b></div>` : ''}`;
   const card = `<div class="sechead"><h2>Daily moves</h2><span class="nw2hint">${every ? 'Everything' : 'Excl. construction'} · market only</span></div>
     <div class="card nw2m">${items.length ? `<div class="nw2big num money ${cls(sum)}">${fChg(sum)}${base ? ` <small>${fPct(sum/base)}</small>` : ''}</div>
-      <div class="nw2sub">market move in ${word}</div>${Math.abs(add) >= 1 ? `<div class="nw2add">You also ${add>0?'put in':'took out'} ${fINR(Math.abs(add))}</div>` : ''}
+      ${Math.abs(add) >= 1 ? `<div class="nw2add">You also ${add>0?'put in':'took out'} ${fINR(Math.abs(add))}</div>` : ''}
       ${bars}` : '<div class="empty">Not enough days logged yet</div>'}
       <div class="nw2r">${['1W','1M','3M','6M','1Y','All'].map(k=>`<button data-nw2r="${k}" class="${k===R?'on':''}">${k}</button>`).join('')}</div></div>`;
   // the day list for 1W / 1M: newest first, money in or out only on days it moved
@@ -3806,10 +3816,10 @@ function renderNw2(daily, monthly){
     list = `<div class="card nw2d">${show.map(x=>`<div class="row2 ${x.k===nw2Sel?'cur':''}" data-nw2b="${esc(x.k)}"><div class="a">${esc(x.cap)}${Math.abs(x.add)>=1000 ? `<small>${x.add>0?'Put in':'Took out'} ${fINR(Math.abs(x.add))}</small>` : ''}</div>
         <div class="z num money ${cls(x.v)}">${fChg(x.v)}${x.pct!=null ? ` <small>${fPct(x.pct)}</small>` : ''}</div></div>`).join('')}
       ${L.length > show.length ? `<button class="more" data-nw2all>Show all ${L.length} days</button>` : ''}</div>`; }
-  el.innerHTML = hero + card + list + `<div id="nw2mg"></div>` + `<button class="nw2old" data-nwold>OLD Networth<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>`;
+  el.innerHTML = hero + card + list + `<div id="nw2mg"></div>` + `<p class="nw2note">${every ? 'Daily and monthly figures go back to mid-April 2026.' : 'Excl. construction is tracked from 7 Sep 2026, when the construction fund was set apart.'} NPS isn't included.</p>` + `<button class="nw2old" data-nwold>OLD Networth<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>`;
   { const s2 = $('#nw2mg'); if (s2 && mgw) s2.appendChild(mgw); }
   const re = () => renderNw2(daily, monthly);
-  $$('#nw2 [data-nwv]').forEach(b=>b.onclick=()=>{ nwV = b.dataset.nwv; save('inv.nwV', nwV); nw2Sel = null; re(); });
+  $$('#nw2 [data-nwv]').forEach(b=>b.onclick=()=>{ nwV = b.dataset.nwv; save('inv.nwV', nwV); nw2Sel = null; mgSel = null; renderTrends(D.data.daily, D.data.monthly); });   // the whole page, Monthly gains too
   $$('#nw2 [data-nw2r]').forEach(b=>b.onclick=()=>{ nw2R = b.dataset.nw2r; save('inv.nw2R', nw2R); nw2Sel = null; nw2All = false; re(); });
   $$('#nw2 [data-nw2b]').forEach(b=>b.onclick=()=>{ nw2Sel = b.dataset.nw2b; haptic(4); const y = scrollY; re(); scrollTo(0, y); });
   const al = $('#nw2 [data-nw2all]'); if (al) al.onclick = ()=>{ nw2All = true; re(); };
@@ -4394,8 +4404,9 @@ function chPicker(daily, monthly, bks){
 function nwMonthlyCard(monthly){
   const el = $('#nwMonthly'); if (!el) return;
   const bm = (D && D.data && Array.isArray(D.data.bucketMonthly)) ? D.data.bucketMonthly : [];
-  mgPicker(monthly, bm);
-  const src = !bm.length || chB==='all' ? monthly : chB==='every' ? mgEvery(monthly, bm) : mgBucketRows(bm, chB.filter(b=>bm.some(r=>r.bucket===b)));   // monthly itself stays the Total series for re-renders
+  // on the new Net worth page the card follows the page's own switch (Everything / Excl. construction), no picker of its own
+  const onNew = !nwOldOn; if (onNew){ const pk = $('#mgPick'); if (pk) pk.innerHTML = ''; } else mgPicker(monthly, bm);
+  const src = onNew ? nw2Months() : !bm.length || chB==='all' ? monthly : chB==='every' ? mgEvery(monthly, bm) : mgBucketRows(bm, chB.filter(b=>bm.some(r=>r.bucket===b)));   // monthly itself stays the Total series for re-renders
   const ms = (src||[]).filter(m=>m && m.month);
   if (!ms.length){ el.innerHTML = '<div class="empty">No monthly gains yet</div>'; return; }
   const data = ms.slice(-12);

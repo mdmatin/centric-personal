@@ -1343,7 +1343,12 @@ html[data-theme=dark] .bk-ivrow .bk-ic.off{color:#ff9f0a}
 .bkpill .bk-chev{flex:none;width:14px;height:14px;color:var(--ink-3);margin-left:auto}
 .bkpill .bk-ic.off{background:rgba(255,159,10,.16);color:#c77700}
 /* a daily log that never got written: a pill on Overview, the details on Net worth */
-#logWarn .logwarn{margin:12px 16px 0}
+/* Overview's "not logged" banner: a card like the rest (same width, radius and gap), a two-line note */
+#logWarn .logwarn{width:calc(100% - 32px);margin:0 16px 14px;padding:13px 16px;gap:12px;border-radius:var(--r-card);align-items:center}
+#logWarn .logwarn .bk-ic{width:32px;height:32px}#logWarn .logwarn .bk-ic svg{width:16px;height:16px}
+#logWarn .lw-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#logWarn .lw-t b{font-size:15px;font-weight:600;letter-spacing:-.25px;color:var(--ink)}
+#logWarn .lw-t small{font-size:12.5px;color:var(--ink-2);line-height:1.3}
 .logwarnc{padding:14px 16px;margin-bottom:12px}
 .logwarnc .lh{display:flex;align-items:center;gap:10px;font-size:15px;letter-spacing:-.25px}
 .logwarnc .bk-ic{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center}.logwarnc .bk-ic svg{width:13px;height:13px}
@@ -2211,6 +2216,30 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
 .fmenu[style*="left"]{transform-origin:top center}
 .menu.still,.fmenu.still{animation:none}
 @media (prefers-reduced-motion:reduce){.menu,.fmenu{animation-duration:.01s}}
+
+/* ---------- Net worth, simplified ---------- */
+.nw2h .nw2v{margin:0 0 14px}
+.nw2h .nw2p{margin-top:6px;font-size:13.5px;color:var(--ink-2)}
+.nw2h .nw2s{display:flex;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--hairline);font-size:13px;color:var(--ink-2)}
+.nw2h .nw2s b{display:block;font-size:16px;color:var(--ink);margin-top:2px;font-weight:600}.nw2h .nw2s div + div{text-align:right}
+.nw2hint{font-size:13px;color:var(--ink-3)}
+.nw2m .nw2big{font:700 30px/1.15 var(--font-disp,inherit);letter-spacing:-.8px}.nw2m .nw2big small{font-size:16px;font-weight:600;margin-left:4px}
+.nw2m .nw2sub{color:var(--ink-2);font-size:14px;margin-top:2px}.nw2m .nw2add{color:var(--ink-3);font-size:13px;margin-top:4px}
+.nw2b{position:relative;display:flex;gap:3px;margin:16px 0 4px}.nw2b .zl{position:absolute;left:0;right:0;border-top:1.5px dashed var(--hairline)}
+.nw2b span{flex:1;position:relative;cursor:pointer}.nw2b span i{position:absolute;left:14%;right:14%;border-radius:5px}.nw2b span i.u{background:var(--up)}.nw2b span i.d{background:var(--down)}
+.nw2b span.on i{box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 28%,transparent)}
+.nw2b em{position:absolute;left:-10px;right:-10px;text-align:center;font-style:normal;font-size:10.5px;font-weight:600;white-space:nowrap}
+.nw2l{display:flex;gap:3px;font-size:11px;color:var(--ink-3);text-align:center;line-height:1.3}.nw2l span{flex:1}.nw2l .on{color:var(--ink);font-weight:600}
+.nw2c{display:flex;justify-content:space-between;font-size:13.5px;color:var(--ink-2);margin-top:6px}.nw2c b small{font-weight:500;opacity:.75}
+.nw2r{display:flex;gap:4px;margin-top:14px}.nw2r button{flex:1;padding:7px 0;border-radius:16px;font-weight:600;font-size:13.5px;color:var(--ink-2)}.nw2r button.on{background:var(--ink);color:var(--canvas)}
+.nw2d{padding-top:6px;padding-bottom:6px}
+.nw2d .row2{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--hairline)}.nw2d .row2:first-child{border-top:0}
+.nw2d .row2.cur{background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--blue) 7%,transparent) 12%,color-mix(in srgb,var(--blue) 7%,transparent) 88%,transparent);margin:0 -16px;padding-left:16px;padding-right:16px}
+.nw2d .a{font-size:15.5px;letter-spacing:-.2px}.nw2d .a small{display:block;font-size:12px;color:var(--ink-3);margin-top:1px}
+.nw2d .z{font-size:15.5px;font-weight:600;text-align:right;white-space:nowrap}.nw2d .z small{font-size:12.5px;font-weight:500;opacity:.75;margin-left:3px}
+.nw2d .more{display:block;width:100%;text-align:center;color:var(--blue);font-size:14px;padding:12px 0 6px;border-top:1px solid var(--hairline)}
+.nw2old{display:flex;align-items:center;justify-content:center;gap:4px;width:calc(100% - 32px);margin:4px 16px 18px;color:var(--blue);font-size:15px}.nw2old svg,.nw2back svg{width:15px;height:15px}
+.nw2back{display:flex;align-items:center;gap:4px;margin:0 16px 12px;color:var(--blue);font-size:15px}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&amp;text=That%27s%20everything%20for%20today.&amp;display=swap">
 </head>
@@ -2314,15 +2343,19 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
 
     <!-- TRENDS -->
     <section class="view" id="v-trend">
+      <div id="logWarnNw"></div>
+      <div id="nw2"></div>
+      <div id="nwOld" hidden>
+      <button class="nw2back" data-nwnew><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Back to the new Net worth</button>
       <div class="card nwp nwhero" id="nwComp"></div>
       <div class="sechead mgsh"><h2>Change</h2><div class="shr" id="chPick"></div></div>
-      <div id="logWarnNw"></div>
       <div class="card nwp nwd" id="nwDays"></div>
       <div class="card dl" id="nwDayList"></div>
       <div class="sechead mgsh"><h2>Monthly gains</h2><div class="shr" id="mgPick"></div></div>
       <div class="card nwmg" id="nwMonthly"></div>
       <div class="sechead"><h2>What moved it</h2></div>
       <div class="card nwp" id="nwMove"></div>
+      </div>
     </section>
 
     <!-- ACTIVITY -->
@@ -2426,7 +2459,7 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
     m.addedNodes.forEach(n=>{ if (n.nodeType!==1) return; const L = isM(n) ? [n] : [...(n.querySelectorAll ? n.querySelectorAll('.menu,.fmenu') : [])];
       if (L.length && Date.now() - gone < 400) L.forEach(x=>x.classList.add('still')); }); }); })
     .observe(document.documentElement, { childList:true, subtree:true }); })();
-const BUILD = '2026-11-26at';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-28aw';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -2505,17 +2538,29 @@ async function api(params){
   try{
     const u = new URL(cfg.url);
     Object.entries({key:cfg.key,...params}).forEach(([k,v])=>u.searchParams.set(k,v));
-    const r = await fetch(u,{redirect:'follow'});
-    const j = await r.json(); noteScriptBuild(j);
+    let j;
+    for (let t = 0; ; t++){   // the same now-and-then "Wrong passcode" as saves: read again
+      const r = await fetch(u,{redirect:'follow'});
+      j = await r.json(); noteScriptBuild(j);
+      if (j.ok || t >= 2 || !/wrong passcode/i.test(j.error||'')) break;
+      await new Promise(res=>setTimeout(res, 1000 + t*800));
+    }
     if(!j.ok) throw new Error(j.error||'Request failed'); return j;
   } finally { apiRunning--; }
 }
 async function apiPost(action, data){
   // text/plain avoids a CORS preflight, which Apps Script cannot answer.
-  const r = await fetch(cfg.url,{method:'POST',redirect:'follow',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({key:cfg.key, action, data})});
-  const j = await r.json(); noteScriptBuild(j);
+  // the sheet now and then answers "Wrong passcode" to the right passcode and takes it a moment later:
+  // that refusal comes before anything is written, so it is tried again quietly (twice, a second apart)
+  let j;
+  for (let t = 0; ; t++){
+    const r = await fetch(cfg.url,{method:'POST',redirect:'follow',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({key:cfg.key, action, data})});
+    j = await r.json(); noteScriptBuild(j);
+    if (j.ok || t >= 2 || !/wrong passcode/i.test(j.error||'')) break;
+    await new Promise(res=>setTimeout(res, 1000 + t*800));
+  }
   if(!j.ok) throw Object.assign(new Error(j.error||'Request failed'), { server:true });   // the sheet answered with a refusal (not a lost reply)
   if (action!=='setBank' && action!=='setWallet' && typeof tkCache!=='undefined') Object.keys(tkCache).forEach(k=>delete tkCache[k]);
   return j.data;
@@ -3672,7 +3717,105 @@ async function loadBucketDaily(){
 }
 let nwDaySel = null, nwDayAll = false, nwPer = 'D', nwChgV = 'inv', chR = load('inv.chR') || '1M', chView = load('inv.chView') || 'line';   // Change: investments only, one point a day, over 1W to All   // nwChgV: what the change shows — net worth, investments, or both side by side   // Day by day: the tapped bar, and whether the list shows every day
 const NW_MOVE = ['1M','3M','YTD','1Y','All'];
+/* ---------- Net worth, simplified (Nov 2026) ----------
+   One switch for the page (Everything / Excl. construction), the market move day by day as bars,
+   a day list, and the months. Money put in is shown on the side, never mixed into the move.
+   Daily figures come from the nightly Bucket History log (all buckets, or all but Construction);
+   months from Monthly Gains, with the Construction bucket's months added for Everything.
+   The page as it was stays one tap away: OLD Networth at the bottom. */
+let nwV = load('inv.nwV') || 'every', nw2R = load('inv.nw2R') || '1W', nw2Sel = null, nw2All = false, nwOldOn = false;
+const nw2Ymd = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const nw2Prev = s => { const d = new Date(s+'T00:00:00'); d.setDate(d.getDate()-1); return nw2Ymd(d); };
+function nw2Series(keep){
+  const rows = (BD && Array.isArray(BD.rows)) ? BD.rows : []; if (!rows.length) return [];
+  // a row dated D holds the close of D−1; realised sits on its trade date (or the next logged day),
+  // moved a day earlier when the invested amount clearly moved there (a noon re-write)
+  const byD = new Map(), rls = [];
+  rows.forEach(r=>{ if (!keep(r.bucket)) return; const k = nw2Prev(r.date), o = byD.get(k) || { date:k, value:0, invested:0, realised:0 };
+    o.value += r.value||0; o.invested += r.invested||0; byD.set(k, o); if (r.realised) rls.push([r.date, r.realised]); });
+  const bp = [...byD.values()].sort((a,b)=>a.date<b.date?-1:1);
+  const dInv = new Map(bp.map((p,i)=>[p.date, i ? p.invested - bp[i-1].invested : 0]));
+  rls.forEach(([d,v])=>{ const b = bp.find(x=>x.date >= d), a = bp.find(x=>x.date >= nw2Prev(d));
+    const early = a && b && a!==b && Math.abs(dInv.get(b.date)) < 0.1*Math.abs(v) && Math.abs(dInv.get(a.date)) >= 0.5*Math.abs(v);
+    const p = early ? a : (b || a); if (p) p.realised += v; });
+  return bp.slice(1).map((p,i)=>{ const q = bp[i], chg = p.value - q.value, add = (p.invested - q.invested) - p.realised;
+    return { date:p.date, value:p.value, base:q.value, mkt:chg - add, add }; });
+}
+function nw2Months(monthly){
+  const bm = (D && D.data && Array.isArray(D.data.bucketMonthly)) ? D.data.bucketMonthly : [], c = {};
+  if (nwV==='every' && bm.length) mgBucketRows(bm, ['Construction']).forEach(o=>{ c[o.month] = o; });
+  return (monthly||[]).filter(m=>m && m.month).map(m=>{ const o = c[m.month]; if (!o) return m; const r = { ...m };
+    ['opening','closing','netContribution','gain'].forEach(k=>{ r[k] = (m[k]||0) + (o[k]||0); }); r.returnPct = r.opening ? r.gain/r.opening : null; return r; });
+}
+function renderNw2(daily, monthly){
+  const el = $('#nw2'); if (!el) return;
+  const old = $('#nwOld'); el.hidden = nwOldOn; if (old) old.hidden = !nwOldOn;
+  if (nwOldOn) return;
+  const d = D && D.data, nw = d && d.netWorth, h = (nw && nw.head) || {}, cash = liveCash();
+  const cashV = cash ? cash.total : (h.runningBalance || 0);
+  let invV = (h.netWorth!=null && h.runningBalance!=null ? h.netWorth - h.runningBalance : h.investmentValue) || 0;
+  const cRow = ((nw && nw.assets) || []).find(a=>!a.isTotal && /construction/i.test(a.name||''));
+  const every = nwV==='every', S = nw2Series(every ? ()=>true : b=>b!=='Construction');
+  let cV = cRow && cRow.value!=null ? Math.abs(cRow.value) : 0;
+  if (!cV && every){ const rows = (BD && BD.rows) || []; const lc = rows.filter(r=>r.bucket==='Construction').pop(); cV = lc ? lc.value||0 : 0; }
+  if (every) invV += cV;
+  const total = invV + cashV, lab = s => new Date(s+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  const last = S[S.length-1];
+  const hero = `<div class="card nw2h">
+      <div class="seg nw2v"><button data-nwv="every" class="${every?'on':''}">Everything</button><button data-nwv="excl" class="${every?'':'on'}">Excl. construction</button></div>
+      <div class="k">Net worth</div><div class="pg-big num money">${bigAmt(fINR2(total))}</div>
+      ${last ? `<div class="nw2p"><span class="pill ${cls(last.mkt)} num money">${fChg(last.mkt)} · ${fPct(last.base ? last.mkt/last.base : 0)}</span> <span>market on ${esc(lab(last.date))}</span></div>` : ''}
+      <div class="nw2s"><div><span>Investments</span><b class="num money">${fINR(invV)}</b></div><div><span>Cash</span><b class="num money">${fINR(cashV)}</b></div></div></div>`;
+  // the period: days for 1W/1M, weeks for 3M, months beyond
+  const R = nw2R, M = nw2Months(monthly);
+  let items = [], sum = 0, add = 0, base = 0, word = '';
+  if (R==='1W' || R==='1M' || R==='3M'){
+    const n = R==='1W' ? 7 : R==='1M' ? 30 : 91, w = S.slice(-n);
+    sum = w.reduce((a,x)=>a+x.mkt,0); add = w.reduce((a,x)=>a+x.add,0); base = w.length ? w[0].base : 0;
+    word = R==='1W' ? 'the last 7 days' : R==='1M' ? 'the last 30 days' : 'the last 3 months';
+    if (R==='3M'){ const wk = []; w.forEach(x=>{ const dt = new Date(x.date+'T00:00:00'); dt.setDate(dt.getDate() - (dt.getDay()+6)%7); const k = nw2Ymd(dt);
+        if (wk.length && wk[wk.length-1].k===k){ wk[wk.length-1].v += x.mkt; wk[wk.length-1].add += x.add; } else wk.push({ k, v:x.mkt, add:x.add, base:x.base }); });
+      items = wk.map(x=>{ const dt = new Date(x.k+'T00:00:00'); return { k:x.k, v:x.v, l1:dt.getDate()+'', l2:dt.toLocaleDateString('en-GB',{month:'short'}), cap:'Week of '+dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'}), pct: x.base ? x.v/x.base : null, add:x.add }; }); }
+    else items = w.map(x=>{ const dt = new Date(x.date+'T00:00:00'); return { k:x.date, v:x.mkt, l1:dt.toLocaleDateString('en-GB',{weekday:'short'}), l2:dt.getDate()+'', cap:lab(x.date), pct: x.base ? x.mkt/x.base : null, add:x.add }; });
+  } else {
+    const n = R==='6M' ? 6 : R==='1Y' ? 12 : 999, w = M.slice(-n);
+    sum = w.reduce((a,m)=>a+(m.gain||0),0); add = w.reduce((a,m)=>a+(m.netContribution||0),0); base = w.length ? w[0].opening||0 : 0;
+    word = R==='All' ? 'all months logged' : R==='6M' ? 'the last 6 months' : 'the last 12 months';
+    items = w.map(m=>{ const p = String(m.month).split(' '); return { k:m.month, v:m.gain||0, l1:(p[0]||'').slice(0,3), l2:(p[1]||'').slice(2), cap:m.month, pct:m.returnPct, add:m.netContribution||0 }; });
+  }
+  if (nw2Sel==null || !items.some(x=>x.k===nw2Sel)) nw2Sel = items.length ? items[items.length-1].k : null;
+  const sel = items.find(x=>x.k===nw2Sel);
+  // bars: up green, down red; amounts on the bars when there are few enough to read
+  const vs = items.map(x=>x.v), hi = Math.max(0, ...vs), lo = Math.min(0, ...vs), sp = (hi-lo) || 1, few = items.length <= 8, H = 150, pad = few ? 18 : 6, z = pad + hi/sp*(H-2*pad);
+  const bars = `<div class="nw2b" style="height:${H}px"><i class="zl" style="top:${z.toFixed(1)}px"></i>${items.map(x=>{ const v = x.v, hgt = Math.max(v ? 3 : 1, Math.abs(v)/sp*(H-2*pad)), top = v>=0 ? z-hgt : z;
+      return `<span class="${x.k===nw2Sel?'on':''}" data-nw2b="${esc(x.k)}"><i class="${v>=0?'u':'d'}" style="top:${top.toFixed(1)}px;height:${hgt.toFixed(1)}px"></i>${few ? `<em class="${v>=0?'up':'down'}" style="top:${(v>=0 ? top-15 : top+hgt+2).toFixed(1)}px">${v ? (v>0?'+':'')+fKL(v) : '0'}</em>` : ''}</span>`; }).join('')}</div>
+    ${few ? `<div class="nw2l">${items.map(x=>`<span class="${x.k===nw2Sel?'on':''}">${esc(x.l1)}<br>${esc(x.l2)}</span>`).join('')}</div>`
+          : sel ? `<div class="nw2c"><span>${esc(sel.cap)}</span><b class="num money ${cls(sel.v)}">${fChg(sel.v)}${sel.pct!=null ? ` <small>${fPct(sel.pct)}</small>` : ''}</b></div>` : ''}`;
+  const card = `<div class="sechead"><h2>Daily moves</h2><span class="nw2hint">market only</span></div>
+    <div class="card nw2m">${items.length ? `<div class="nw2big num money ${cls(sum)}">${fChg(sum)}${base ? ` <small>${fPct(sum/base)}</small>` : ''}</div>
+      <div class="nw2sub">market move in ${word}</div>${Math.abs(add) >= 1 ? `<div class="nw2add">You also ${add>0?'put in':'took out'} ${fINR(Math.abs(add))}</div>` : ''}
+      ${bars}` : '<div class="empty">Not enough days logged yet</div>'}
+      <div class="nw2r">${['1W','1M','3M','6M','1Y','All'].map(k=>`<button data-nw2r="${k}" class="${k===R?'on':''}">${k}</button>`).join('')}</div></div>`;
+  // the day list for 1W / 1M: newest first, money in or out only on days it moved
+  let list = '';
+  if (R==='1W' || R==='1M'){ const L = items.slice().reverse(), show = nw2All || R==='1W' ? L : L.slice(0,7);
+    list = `<div class="card nw2d">${show.map(x=>`<div class="row2 ${x.k===nw2Sel?'cur':''}" data-nw2b="${esc(x.k)}"><div class="a">${esc(x.cap)}${Math.abs(x.add)>=1000 ? `<small>${x.add>0?'Put in':'Took out'} ${fINR(Math.abs(x.add))}</small>` : ''}</div>
+        <div class="z num money ${cls(x.v)}">${fChg(x.v)}${x.pct!=null ? ` <small>${fPct(x.pct)}</small>` : ''}</div></div>`).join('')}
+      ${L.length > show.length ? `<button class="more" data-nw2all>Show all ${L.length} days</button>` : ''}</div>`; }
+  const ML = M.slice(-12).reverse(), ym = new Date().toLocaleDateString('en-GB',{month:'short',year:'numeric'});
+  const months = ML.length ? `<div class="sechead"><h2>Monthly</h2><span class="nw2hint">market gain</span></div><div class="card nw2d">${ML.map(m=>`<div class="row2"><div class="a">${esc(m.month)}${m.month===ym ? ' <span class="faint">so far</span>' : ''}${Math.abs(m.netContribution||0)>=1000 ? `<small>${(m.netContribution||0)>0?'Put in':'Took out'} ${fKL(Math.abs(m.netContribution)).replace(/^−/,'')}</small>` : ''}</div>
+      <div class="z num money ${cls(m.gain)}">${fChg(m.gain||0)}${m.returnPct!=null ? ` <small>${fPct(m.returnPct)}</small>` : ''}</div></div>`).join('')}</div>` : '';
+  el.innerHTML = hero + card + list + months + `<button class="nw2old" data-nwold>OLD Networth<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>`;
+  const re = () => renderNw2(daily, monthly);
+  $$('#nw2 [data-nwv]').forEach(b=>b.onclick=()=>{ nwV = b.dataset.nwv; save('inv.nwV', nwV); nw2Sel = null; re(); });
+  $$('#nw2 [data-nw2r]').forEach(b=>b.onclick=()=>{ nw2R = b.dataset.nw2r; save('inv.nw2R', nw2R); nw2Sel = null; nw2All = false; re(); });
+  $$('#nw2 [data-nw2b]').forEach(b=>b.onclick=()=>{ nw2Sel = b.dataset.nw2b; haptic(4); const y = scrollY; re(); scrollTo(0, y); });
+  const al = $('#nw2 [data-nw2all]'); if (al) al.onclick = ()=>{ nw2All = true; re(); };
+  const ob = $('#nw2 [data-nwold]'); if (ob) ob.onclick = ()=>{ nwOldOn = true; renderTrends(D.data.daily, D.data.monthly); scrollTo(0,0); };
+}
 function renderTrends(daily, monthly){
+  try { renderNw2(daily, monthly); } catch (e) { console.error('Net worth: ' + e.message); }
+  { const nb = $('#nwOld [data-nwnew]'); if (nb) nb.onclick = ()=>{ nwOldOn = false; renderTrends(D.data.daily, D.data.monthly); scrollTo(0,0); }; }
   const d = D && D.data, nw = d && d.netWorth, h = (nw && nw.head) || {}, cash = liveCash();
   const cashV = cash ? cash.total : (h.runningBalance || 0);
   const invV = h.netWorth!=null && h.runningBalance!=null ? h.netWorth - h.runningBalance : h.investmentValue;
@@ -3927,7 +4070,7 @@ function paintLogGaps(daily){
   const stuck = gaps.find(g=>g.today), past = gaps.filter(g=>!g.today);
   const title = stuck && !past.length ? 'Last night’s log hasn’t run' : past.length===1 && !stuck ? `${lab(past[0].day)} wasn’t logged` : `${gaps.length} days not logged`;
   home.innerHTML = `<button class="card bkpill off bankrow logwarn" data-logwarn><span class="bk-ic off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="${BK_WARN}"/></svg></span>
-    <span class="bk-t">${title}</span><svg class="bk-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>`;
+    <span class="lw-t"><b>${title}</b><small>${stuck && !past.length ? 'May be stuck · retries at 5:15 AM and noon' : 'Merged into the next day’s change'}</small></span><svg class="bk-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>`;
   const lines = [
     stuck ? `<li><b>${lab(stuck.day)}</b>: today’s 3:15 AM log hasn’t been written. The nightly run may be stuck: check <i>Refresh › Last nightly run</i> in the sheet. It retries on its own at 5:15 AM and at noon.</li>` : '',
     ...past.map(g=>{ const n = new Date(g.day+'T00:00:00'); n.setDate(n.getDate()+1);

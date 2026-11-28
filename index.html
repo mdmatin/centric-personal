@@ -299,41 +299,6 @@ b.money,b.num,strong.money{font-weight:600}
 /* ---------- chart ---------- */
 .chart{position:relative;margin:18px -4px 0;height:120px;touch-action:pan-y}
 .chart.tall{height:150px}
-/* Net worth page */
-.nwp .k{font-size:13px;color:var(--ink-2);font-weight:600}
-.nwp .big{font-size:30px;font-weight:700;letter-spacing:-.02em;margin-top:2px}
-.nwp-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px;margin:12px 0 6px}
-.nwp-bar i{display:block;min-width:3px}
-.nwp-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--hairline);font-size:15px}
-.nwp-row:first-child{border-top:0}
-.nwp-row .l{display:flex;align-items:center;gap:8px}.nwp-row .v{font-weight:600}
-.nwp-row .m,.nwp .nwp-note{font-size:12px;color:var(--ink-3);font-weight:500}
-.nwp-dot{width:9px;height:9px;border-radius:3px;flex:none}
-.nwp .seg{margin-bottom:6px}.nwp .seg button{font-size:13.5px;padding:6px 4px}
-.nwp .nwp-note{margin-top:6px;line-height:1.4}
-/* Net worth › Day by day: 30 up/down bars (tap one to read it) + the list of days */
-.dsel{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:6px}
-.dsel .k{font-size:12px;color:var(--ink-2)}
-.dsel .v{font-family:var(--font-disp);font-size:20px;font-weight:600;letter-spacing:-.4px;white-space:nowrap}
-.dsel .v small{font-size:14px;font-weight:500;letter-spacing:-.1px}
-.dsel .s{font-size:12px;color:var(--ink-3);text-align:right;line-height:1.4;white-space:nowrap}
-.dbars{display:flex;gap:3px;height:110px;position:relative;margin:6px 0 4px}
-.dbars:before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px dashed var(--hairline)}
-.dbars{justify-content:center}
-.dbars i{flex:1;max-width:26px;position:relative;cursor:pointer}
-.dbars i b{position:absolute;left:0;right:0;border-radius:2px;min-height:2px;opacity:.75}
-.dbars i b.up{bottom:50%;background:var(--up)} .dbars i b.down{top:50%;background:var(--down)}
-.dbars i.sel b{opacity:1;outline:2px solid var(--ink);outline-offset:1px}
-.dbars[data-dbars]:before{content:none}   /* the old middle line; the zero line (.zl) sits where zero is */
-.cuh{margin-top:0}.cubig{font-size:24px;font-weight:700;letter-spacing:-.6px;line-height:1.15}.cucap{font-size:13.5px;color:var(--ink-3);margin-top:2px}
-.culg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:13px;color:var(--ink-2)}
-.cusp{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;margin-top:14px}.cusp i{display:block}.cul2{justify-content:space-between;margin-top:6px}
-.culk{display:flex;align-items:center;gap:5px}.culk i{display:inline-block;width:12px;border-top:2px solid var(--blue)}.culk i.dash{border-top:2px dashed var(--ink-3);margin-left:6px}
-#nwDays{position:relative}.chvt{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--sunken);color:var(--ink-2)}.chvt svg{width:18px;height:18px}
-.cubw{position:relative;margin-top:14px;touch-action:pan-y}.dbars[data-cbars]:before{content:none}.cubw .tip{white-space:nowrap}.cubw .dbars{margin:0 0 6px}
-#nwCum{margin-top:14px;touch-action:pan-y}#nwCum .tip{white-space:nowrap}#chRanges{margin-top:12px}
-.culg b{white-space:nowrap}
-.dax{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3)}
 .dl{padding:4px 16px}
 .dl .r{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--hairline)}
 .dl .r:first-child{border-top:0}
@@ -342,40 +307,15 @@ b.money,b.num,strong.money{font-weight:600}
 .dl .z{text-align:right;font-size:15px;font-weight:600;letter-spacing:-.2px;white-space:nowrap}
 .dl .z .p{font-weight:500;font-size:13px}
 .dl .z .arrow{font-size:.8em}
-/* Net worth › Change: bars, a summary row, a cleaner list (2026-11-07) */
-.spstats.dsum{margin:14px 0;padding-top:0;border-top:0}
-.dsum b.up{color:var(--up)}.dsum b.down{color:var(--down)}
-.dbars{position:relative;height:130px;margin:10px 0 6px;display:flex;gap:2px;touch-action:pan-y;cursor:pointer}
-.dbars .zl{position:absolute;left:0;right:0;top:var(--z);border-top:1px dashed var(--hairline);z-index:0}
-.dbars span{position:relative;flex:1;min-width:0}
-.dbars span i{position:absolute;left:0;right:0;border-radius:3px;opacity:.38;transition:opacity .15s}
-.dbars span i.up{background:var(--up)}.dbars span i.dn{background:var(--down)}
-.dbars span.on i{opacity:1}
-.dbars.two span i.iv{right:50%;background:var(--blue)}.dbars.two span i.cs{left:50%;background:var(--cashc)}
-.dvseg{display:flex;margin:14px 0 0;border-bottom:1px solid var(--hairline)}   /* Net worth · Investments · Combined: plain tabs, the chosen one underlined */
-.dvseg button{flex:1;text-align:center;position:relative;background:none;border:0;padding:0 0 9px;font-size:14px;font-weight:500;letter-spacing:-.2px;color:var(--ink-3);cursor:pointer}
-.dvseg button.on{color:var(--ink);font-weight:600}
-.dvseg button.on::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--ink)}
-.dsum i.dk{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}.dsum i.dk.iv{background:var(--blue)}.dsum i.dk.cs{background:var(--cashc)}
-.dbars span.lv i{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.35) 0 3px,transparent 3px 6px)}
 .dl .dlh{display:flex;justify-content:space-between;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);padding:10px 0 2px}
 .dl .dlh + .r{border-top:0}
 .dl .dr{cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .dl .dr.cur{background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--blue) 7%,transparent) 12%,color-mix(in srgb,var(--blue) 7%,transparent) 88%,transparent);margin:0 -16px;padding-left:16px;padding-right:16px}
 .dl .dr .z .p{color:inherit;opacity:.75;margin-left:2px}
-body.dselecting .dl .dr{gap:12px}
-body.dselecting .dl .dr::before{content:"";flex:0 0 22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1.6px var(--ink-3);transition:background-color .15s,box-shadow .15s}
-body.dselecting .dl .dr .a{flex:1}
-body.dselecting .dl .dr.picked::before{box-shadow:none;background:var(--blue) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center/14px no-repeat}
-#dselBar .st b.up{color:var(--up)}#dselBar .st b.down{color:var(--down)}
 .dl .more{display:block;width:100%;text-align:center;color:var(--blue);font-size:14px;padding:12px 0 8px;border-top:1px solid var(--hairline)}
 .nwhero .k{font-size:13px;color:var(--ink-2);font-weight:400;letter-spacing:-.1px}
 .bghero .k{font-size:12px}.bghero .pg-big{font-size:26px;letter-spacing:-.6px;margin-top:1px}   /* Budgets: the same size as Spend › Budget's Remaining */
 .nwhero .pg-big{margin-top:4px}
-.nwhero .nwsub{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:6px 0 2px}
-.nwhero .nwsub .today{font-size:14px;color:var(--ink-2)}
-.spstats.nwsplit2{border-top:0;padding-top:0;margin-top:14px}   /* the bar above already divides */
-.nwsplit2 span i{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:1px}
 .nwmg{padding:16px 16px 6px}
 /* Monthly gains › bucket picker: ticks sum the chosen buckets; Total is the whole net worth (incl. NPS) */
 .mgsh{position:relative}
@@ -385,10 +325,7 @@ body.dselecting .dl .dr.picked::before{box-shadow:none;background:var(--blue) ur
 .mgsh .menu button{justify-content:space-between;gap:24px;margin:0;padding:11px 12px;font-size:16px;letter-spacing:-.3px;color:var(--ink)}
 .mgsh .menu button i{width:20px;height:20px;flex:none;color:var(--blue)}
 .mgsh .menu button i svg{width:20px;height:20px}
-.chbn{margin-top:8px;font-size:12px;color:var(--ink-3);text-align:center}
 .acsh .menu{max-height:62vh;overflow-y:auto;z-index:30}.acsh .menu .acall{justify-content:center;color:var(--blue);border-top:1px solid var(--hairline)}
-.mgsh .menu .mghd{padding:10px 12px 2px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);border-top:1px solid var(--hairline)}
-.mgsh .menu .mgnote{width:0;min-width:100%;box-sizing:border-box;padding:8px 12px 6px;font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--hairline)}
 .nwmg .mgtop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .nwmg .k{font-size:13px;color:var(--ink-2);font-weight:600}.nwmg .k .so{font-weight:400;color:var(--ink-3)}
 .nwmg .mgbig{font:700 28px/1.15 var(--font-disp,inherit);letter-spacing:-.6px;margin-top:2px}
@@ -1518,8 +1455,6 @@ html[data-theme=dark] .bkpill .bk-ic.iq,html[data-theme=dark] .zqh .bk-ic.iq{bac
 .ccc .bar{height:4px;border-radius:2px;background:var(--sunken);margin:6px 0 4px;overflow:hidden}.ccc .bar i{display:block;height:100%;border-radius:2px;background:var(--blue)}
 .ccc .m{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3)}
 .cccats .more{display:block;width:100%;text-align:center;border:0;border-top:1px solid var(--hairline);background:none;color:var(--blue);font-size:14px;padding:12px 0 2px;cursor:pointer}
-.ccbigbuy{display:flex;align-items:baseline;gap:8px;margin:12px 0 -4px;padding:12px 0 0;border-top:1px solid var(--hairline);font-size:13px;color:var(--ink-2)}
-.ccbigbuy b{color:var(--ink);font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ccbox{padding:14px 0 0;overflow:hidden}.ccbox>.seg{margin:0 16px 2px}.ccbox>.seg button{font-size:13.5px;padding:6px 4px}   /* like Net worth › Change */
 .ccbox .ccsp{padding:14px 16px 16px}
 .cchd{align-items:center}.cchd .ccmon{margin:-6px 0}.cchd .ccmon button{padding:0;margin:0}   /* not a .sechead link button */
@@ -2202,9 +2137,8 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
 .fmenu button.fa{padding-left:58px;font-size:16px;color:rgba(255,255,255,.88)}
 .fmenu button.ft span{font-weight:600}
 .menu button:active,.fmenu button:active{background:rgba(255,255,255,.14)}
-.fmenu .fh,.mgsh .menu .mghd{color:rgba(255,255,255,.6);border-top:0;padding:10px 22px 4px 44px;font-size:12.5px}
-.fmenu .fh:not(:first-child),.mgsh .menu .mghd:not(:first-child){margin-top:6px;border-top:.5px solid rgba(255,255,255,.22);padding-top:14px}
-.mgsh .menu .mgnote{color:rgba(255,255,255,.65);border-top:.5px solid rgba(255,255,255,.22);padding:10px 18px 6px}
+.fmenu .fh{color:rgba(255,255,255,.6);border-top:0;padding:10px 22px 4px 44px;font-size:12.5px}
+.fmenu .fh:not(:first-child){margin-top:6px;border-top:.5px solid rgba(255,255,255,.22);padding-top:14px}
 .acsh .menu .acall{justify-content:center;padding-left:22px;color:#a8cbff;font-weight:600;border-top:.5px solid rgba(255,255,255,.22)}
 .menu .appear{border-top:.5px solid rgba(255,255,255,.22)}.menu .appear span{color:rgba(255,255,255,.6)}
 .menu .appear .seg button{color:inherit;padding:6px 4px;justify-content:center}
@@ -2223,8 +2157,7 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
 .nw2h .nw2s{display:flex;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--hairline);font-size:13px;color:var(--ink-2)}
 .nw2h .nw2s b{display:block;font-size:16px;color:var(--ink);margin-top:2px;font-weight:600}.nw2h .nw2s div + div{text-align:right}
 .nw2hint{font-size:13px;color:var(--ink-3)}
-.nw2m .nw2big{font:700 30px/1.15 var(--font-disp,inherit);letter-spacing:-.8px}.nw2m .nw2big small{font-size:16px;font-weight:600;margin-left:4px}
-.nw2m .nw2sub{color:var(--ink-2);font-size:14px;margin-top:2px}.nw2m .nw2add{color:var(--ink-3);font-size:13px;margin-top:4px}
+.nw2m .nw2big{font:700 30px/1.15 var(--font-disp,inherit);letter-spacing:-.8px}.nw2m .nw2big small{font-size:16px;font-weight:600;margin-left:4px}.nw2m .nw2add{color:var(--ink-3);font-size:13px;margin-top:4px}
 .nw2b{position:relative;display:flex;gap:3px;margin:16px 0 4px}.nw2b .zl{position:absolute;left:0;right:0;border-top:1.5px dashed var(--hairline)}
 .nw2b span{flex:1;position:relative;cursor:pointer}.nw2b span i{position:absolute;left:14%;right:14%;border-radius:5px}.nw2b span i.u{background:var(--up)}.nw2b span i.d{background:var(--down)}
 .nw2b span.on i{box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 28%,transparent)}
@@ -2238,9 +2171,7 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
 .nw2d .a{font-size:15.5px;letter-spacing:-.2px}.nw2d .a small{display:block;font-size:12px;color:var(--ink-3);margin-top:1px}
 .nw2d .z{font-size:15.5px;font-weight:600;text-align:right;white-space:nowrap}.nw2d .z small{font-size:12.5px;font-weight:500;opacity:.75;margin-left:3px}
 .nw2d .more{display:block;width:100%;text-align:center;color:var(--blue);font-size:14px;padding:12px 0 6px;border-top:1px solid var(--hairline)}
-.nw2old{display:flex;align-items:center;justify-content:center;gap:4px;width:calc(100% - 32px);margin:4px 16px 18px;color:var(--blue);font-size:15px}.nw2old svg,.nw2back svg{width:15px;height:15px}
 .nw2note{margin:2px 20px 10px;font-size:12px;line-height:1.4;color:var(--ink-3)}
-.nw2back{display:flex;align-items:center;gap:4px;margin:0 16px 12px;color:var(--blue);font-size:15px}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&amp;text=That%27s%20everything%20for%20today.&amp;display=swap">
 </head>
@@ -2452,7 +2383,7 @@ html[data-theme=dark] .menu,html[data-theme=dark] .fmenu{background:rgba(60,60,6
     m.addedNodes.forEach(n=>{ if (n.nodeType!==1) return; const L = isM(n) ? [n] : [...(n.querySelectorAll ? n.querySelectorAll('.menu,.fmenu') : [])];
       if (L.length && Date.now() - gone < 400) L.forEach(x=>x.classList.add('still')); }); }); })
     .observe(document.documentElement, { childList:true, subtree:true }); })();
-const BUILD = '2026-11-29bi';        // shown in the app, so we can tell which copy is live
+const BUILD = '2026-11-29bk';        // shown in the app, so we can tell which copy is live
 const REFRESH_MS = 2 * 60 * 1000;   // auto refresh every 2 minutes
 const STALE_MS   = 60 * 1000;       // refresh on reopen if older than this
 const LS = { cfg:'inv.cfg', data:'inv.data', blur:'inv.blur', range:'inv.range' };
@@ -3490,6 +3421,16 @@ function renderAssets(holdings, usdInr){
         <div class="hrow"><span>Share of portfolio</span><b>${st.alloc!=null ? fPct(st.alloc,false) : '—'}</b></div></div><button class="capmore2 ${capOpen?'on':''}" data-capmore aria-expanded="${capOpen}">${capOpen ? 'Less' : 'More'}${chev('M6 9l6 6 6-6')}</button>`); }
     const cm = $('#assetSum [data-capmore]'); if (cm) cm.onclick = ()=>{ capOpen = !capOpen; renderAssets(all0, usdInr); };
   } else $('#capWrap').innerHTML = '';
+  // Crypto: the card's total is the balance you type on the Crypto tab (Net Worth), the coins are units × price.
+  // What's left over (rewards, staking, coins not traded through Transactions) gets its own line, so the list adds up.
+  const crNW = assetCat==='Crypto' ? ((D && D.data && D.data.netWorth && D.data.netWorth.assets) || []).find(a=>!a.isTotal && assetCatFor(a.name, all)==='Crypto') : null;
+  const crGap = crNW && crNW.value!=null ? crNW.value - rows.reduce((s0,h)=>s0+inInr(h),0) : 0;
+  const crRow = Math.abs(crGap) >= 1 ? `<div class="hcard hc1" data-q="${esc(qWords('rewards untracked balance crypto binance'))}">
+      <div class="hc-top">${tickerTile({ ticker:'', category:'Crypto' })}
+        <div class="hc-name"><div class="n">Rewards &amp; untracked</div>
+          <div class="sub">Typed balance not in any coin</div></div>
+        <div class="hc-val"><div class="v num money">${crGap<0?'−':''}${fINR(Math.abs(crGap))}</div></div>
+      </div></div>` : '';
   $('#assetList').innerHTML = list.map(h=>{
     const m = money(h), m2 = money2(h);
     // a US card in ₹: cost at buy-date rates, so returns include what the dollar did since
@@ -3520,9 +3461,9 @@ function renderAssets(holdings, usdInr){
           <div class="s num money ${cls(ret)}">${right}</div></div>
       </div>
     </div>`;
-  }).join('') + (list.length
+  }).join('') + crRow + (list.length
       ? `<div class="listfoot"><span>${list.length} holding${list.length===1?'':'s'}</span>
-         <span>${(()=>{ const sm = list===rows ? sum : list.reduce((s,h)=>s+(native ? (h.value||0) : inInr(h)),0); return native && !inrMode ? usd.format(sm) : tipS(native ? sm*fx : sm, fCompact(native ? sm*fx : sm)); })()}</span></div>${holdFootNote(rows, all)}`
+         <span>${(()=>{ const sm = (list===rows ? sum : list.reduce((s,h)=>s+(native ? (h.value||0) : inInr(h)),0)) + crGap; return native && !inrMode ? usd.format(sm) : tipS(native ? sm*fx : sm, fCompact(native ? sm*fx : sm)); })()}</span></div>${holdFootNote(rows, all)}`
       : '<div class="empty">No holdings</div>');
 
   fitAssetRows();
